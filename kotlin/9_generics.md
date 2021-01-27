@@ -21,7 +21,7 @@ interface List<T> {
 ```
 
 ### type parameter constraint
-- type argument 를 제한하는 기능
+- type parameter 를 제한하는 기능
 - upper bound 를 지정
 
 ```kotlin
@@ -63,8 +63,8 @@ class Processor<T: Any> {
   - 저장해야하는 정보 크기가 줄어서 메모리 사용량이 줄어듦
 
 ### Generics on runtime
-- type argument 정보는 runtime 에 지워짐
-- 인스턴스를 생성할 때 사용된 type argument 에 대한 정보를 유지하지 않음
+- type parameter 정보는 runtime 에 지워짐
+- 인스턴스를 생성할 때 사용된 type parameter 에 대한 정보를 유지하지 않음
   - `List<String>` 객체를 만들더라도, 런타임에서는 `List` 로만 볼 수 있음
 
 #### 한계
@@ -133,7 +133,7 @@ for (element in this) {
 
 #### class
 - generic 이 아닌 경우: 이름을 바로 type 으로 사용 가능
-- generic 인 경우: 올바른 type 을 얻으려면 구체적인 type argument 를 제공해야 함 (`List<Int>`, `List<String?>`, ...)
+- generic 인 경우: 올바른 type 을 얻으려면 구체적인 type parameter 를 제공해야 함 (`List<Int>`, `List<String?>`, ...)
 
 #### subtype <-> supertype
 - Int 는 Number 의 subtype
@@ -141,7 +141,7 @@ for (element in this) {
 - **subclass** 는 간단한 경우 subtype 과 동일
 
 #### invariant, covariant
-- generic type 을 인스턴스화 할 때 서로 다른 type argument 가 들어간 경우
+- generic type 을 인스턴스화 할 때 서로 다른 type parameter 가 들어간 경우
   - 인스턴스 간 subtype 관계가 성립하지 않으면 -> **invariant**
   - JAVA 에서는 모든 클래스가 invariant
 - A 가 B 의 subtype 이면 List\<A> 는 List\<B> 의 subtype -> **covariant**
@@ -191,5 +191,27 @@ interface Function1<in P, out R> {
 ```
 
 ### use-site variance
+- (사용 지점 변성)
+- 뭔가 개념이 다른거 같은데 코드를 짜봐야 알 듯
 - wildcard type 을 사용하는 JAVA 에서의 방식
   - `? extends`, `? super`
+- parameter, local variable, return teyp 에 `in`, `out` 을 붙일 수 있음
+  - type projection 이 일어남
+
+```kotlin
+// in position 의 메소드는 호출하지 않음을 명시
+// T 를 리턴하는 메소드만 사용 가능
+fun<T> copyData(source: MutableList<out T>, destination: MutableList<T>) {
+  for (item in source) {
+    destination.add(item)
+  }
+}
+
+val list: MutableList<out Number> = ...
+list.add(42) // complier 단에서 막힘
+```
+
+### star projection
+- JAVA 의 `?` 에 대응
+- generic type parameter 정보가 없음을 표현
+- type parameter 를 알 필요가 없을 때 사용
