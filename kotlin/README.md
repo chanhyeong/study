@@ -1,1 +1,0 @@
-- 영문 livebook: https://livebook.manning.com/book/kotlin-in-action
