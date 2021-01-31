@@ -103,3 +103,151 @@ annotation class CustomSerializer(val serializerClass: KClass<out ValueSerialize
     - JAVA 를 완전히 대체하진 못함
 
 ### kotlin reflection API
+- `KClass`: kotlin 에서의 클래스 표현
+```kotlin
+interface KClass<T: Any> {
+  val simpleName: String?
+  val qualifiedName: String?
+  val members: Collection<KCallable<*>>
+  val constructors: Collection<KFunction<*>>
+  val nestedClasses: Collection<KClass<*>>
+  val memberProperties ...
+}
+```
+- `KCallable`: function, property 를 아우르는 공통 상위 인터페이스
+  - call 메소드: function or property getter 호출
+```kotlin
+interface KCallable<out R> {
+  fun call(varagrs args: Any?): R
+}
+
+fun foo(x: Int) = println(x)
+val kFunction = ::foo
+kFunction.call(42)
+```
+- `KFunctionN`
+  - 컴파일 시점에 생성
+  - N 개의 parameter 를 받는 function
+  - invoke 메소드
+```kotlin
+import kotlin.reflection.KFunction2
+
+fun sum(x: Int, y: Int) = x + y
+
+val kFunction: KFunction2<Int, Int, Int> = ::sum
+kFunction.invoke(1, 2) + kFunction (3, 4)
+```
+- `KProperty` : get 메소드 제공
+- kotlin refection api hierarchy  
+![image](https://user-images.githubusercontent.com/10507662/106360307-188d0180-635b-11eb-99f2-bce41f4f2be8.png)
+
+### implementing object serialization using reflection
+```kotlin
+fun serialize(obj: Any): String
+
+private fun StringBuilder.serializeObject(obj: Any) {
+    val kClass = obj.javaClass.kotlin // KClass 
+    val properties = kClass.memberProperties // all properties of the class
+
+    properties.joinToStringBuilder(this, prefix = "{", postfix = "}") { prop -> // KProperty<Any, *>
+        serializeString(prop.name) // property name
+        append(": ")
+        serializePropertyValue(prop.get(obj)) // property value
+    }
+}
+```
+
+### customizing serialization with annotations
+- `JsonExclude`, `JsonName`, `CustomSerializer` 의 구현
+```kotlin
+// KAnnotatedElement 의 annotations property - `findAnnotation`
+inline fun <reified T> KAnnotatedElement.findAnnotation(): T?
+  = annotations.filterIsInstance<T>().firstOrNull()
+
+// findAnnotation 을 이용한 필터링 구현
+// @JsonExclude
+val properties = kClass.memberProperties.filter { it.findAnnotation<JsonExclude>() == null }
+
+// @JsonName
+val jsonNameAnnotation = prop.findAnnotation<JsonName>()
+val propName = jsonNameAnnotation?.name ?: prop.name
+
+// @CustomSerializer
+annotation class CustomSerializer(
+  val serializerClass: KClass<out ValueSerializer<*>>
+)
+
+fun KProperty<*>.getSerializer(): ValueSerializer<Any?>? {
+  val customSerializerAnnotation = findAnnotation<CustomSerializer>() ?: return null
+  val serializerClass = customSerializerAnnotation.serializerClass
+  val valueSerializer = serializerClass.objectInstance ?: serializerClass.createInstance()
+  @Suppress("UNCHECKED_CAST")
+  return valueSerializer as ValueSerializer<Any?>
+}
+```
+- 위 구현들을 포함한 최종 serializer
+```kotlin
+private fun StringBuilder.serializeProperty(
+  prop: KProperty1<Any, *>, object: Any
+) {
+  val name = prop.findAnnotation<JsonName>()?.name ?: prop.name
+  serializeString(name)
+  append(": ")
+
+  val value = prop.get(obj)
+  val jsonValue = prop.getSerializer?.toJsonValue(value) ?: value
+  serializePropertyValue(prop.get(obj))
+}
+
+private fun StringBuilder.serializeObject(obj: Any) {
+  obj.javaClass.kotlin.memberProperties
+    .filter { it.findAnnotation<JsonExclude>() == null }
+    .joinToStringBuilder(this, prefix = "{", postfix = "}") {
+        serializeProperty(it, obj)
+    }
+}
+```
+
+### JSON parsing & object deserialization
+```kotlin
+inline fun <reified T: Any> deserialize(json: String): T
+```
+- 단계별 구분
+  - 1 - lexer: lexical analyzer
+    - character token, value token 구분
+  - 2 - parser: syntax analyzer
+    - 1 의 tokin list 를 structured representation 으로 변환
+
+![image](https://user-images.githubusercontent.com/10507662/106375388-e4532880-63ce-11eb-8000-e12a6451ea25.png)
+
+- 여기부터 아래는 너무 구현적이어서 넘어가도 됨
+- 객체의 하위 요소를 저장 - builder pattern
+  - Jkid 에서는 Seed 라는 명칭을 사용
+  - `ObjectSeed`, `ObjectListSeed`, `ValueListSeed`
+
+```kotlin
+interface Seed: JsonObject {
+  fun spawn(): Any?
+  fun createCompositeProperty(propertyName: String, isList: Boolean): JsonObject
+
+  ...
+}
+
+fun <T: Any> deserialize(json: Reader, targetClass: KClass<T>): T {
+  val seed = ObjectSeed(targetClass, ClassInfoCache(0))
+  Parser(json, seed).parse()
+  return seed.spawn()
+}
+```
+
+### 최종 deserialization: callBy(), create object using reflection
+- `call`: default parameter 를 지원하지 않음
+- `callBy`: default parameter 지원
+```kotlin
+interface KCallable<out R> {
+  fun callBy(args: Map<KParameter, Any?>): R
+  ...
+}
+```
+
+- 이하 생략
