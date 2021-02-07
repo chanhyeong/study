@@ -177,3 +177,63 @@ dependencies.invoke({
 ```
 
 ## Kotlin DSL in practice
+### infix call chaining
+- `kotlintest` 를 예시로 듦
+
+```kotlin
+interface Matcher<T> {
+  fun test(value: T)
+}
+
+infix fun <T> T.should(matcher: Matcher<T>) = matcher.test(this)
+
+class startWith(val prefix: String) : Matcher<String> {
+  override fun test(value: String) {
+    if(!value.startsWith(prefix)) throw AssertionError("String $value does not start with $prefix")
+  }
+}
+
+// 위에 선언한 기반으로 테스트 수행
+s should startWith("kot")
+```
+```kotlin
+// method chaining
+object start
+
+infix fun String.should(x: start) : StartWrapper = StartWrapper(this)
+
+class StartWrapper(val value: String) {
+  infix fun with(prefix: String) = if (!value.startsWith(prefix)) throw AssertionError("String $value does not start with $prefix") else Unit
+}
+
+"kotlin" should start with "kot"
+"kotlin".should(start).with("kot")
+```
+- `infix call` + `object` (singleton object instance) 를 조합하면 DSL 에 복잡한 문법을 도입할 수 있음
+
+### extension function about primitive type
+```kotlin
+val yesterday = 1.days.ago
+val tomorrow = 1.days.fromNow
+
+val Int.days: Period // primitive Int 에 대한 extension
+  get() = Period.ofDays(this)
+
+val Period.ago: LocalDate
+  get() = LocalDate.now() - this
+val Period.fromNow: LocalDate
+  get() = LocalDate.now() + this
+```
+
+### member extension function
+- 클래스 안에서 extension function, extension property 를 선언하는 것
+```kotlin
+class Table {
+  fun integer(name: String): Column<Int>
+  fun varchar(name: String, length: Int): Column<String>
+  ...
+  // extension 의 범위를 클래스 내로만 지정하기 위해 아래와 같이 extend
+  fun <T> Column<T>.primaryKey(): Column<T>
+  fun Column<Int>.autoIncrement(): Column<Int>
+}
+```
