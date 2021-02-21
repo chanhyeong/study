@@ -119,3 +119,117 @@
 - 9장에서
 
 # 2. URL 과 Resource
+## Resource 탐색하기
+- **`scheme://host/path`**
+  - how, where, what
+  - mailto:president@bluehouse.gov
+  - ftp://ftp.test.com/excel.xls
+
+## URL Syntax
+**`<scheme>://<username>:<password>:<host>:<port>/<path>;<params>?<query>#<fragment>`**
+
+|Component|Description|Default value|
+| ----------- | ----------- | ----------- |
+|scheme|어떤 프로토콜을 사용하여 서버에 접근해야 하는지|-|
+|username|특정 scheme 은 username 요구|anonymous|
+|password|-|email address|
+|host|서버의 hostname or IP address|-|
+|port|port number|scheme 마다 다름|
+|path|서버 내 리소스가 어디에 있는지|-|
+|parameter|특정 scheme 에서 파라미터를 기술하는 요도로 사용, name/value 값을 가지고 `;` 로 구분|-|
+|query|application 에 파라미터를 전달하는데 사용, `?`|-|
+|fragment|리소스의 조각이나 일부분을 가리키는 이름, `#`|-|
+
+### Scheme: 사용할 프로토콜
+- 리소스에 어떻게 접근하는지. 대소문자 구분 없음
+
+### Host, Port
+- 리소스를 호스팅하는 장비 및 장비 내에서 접근할 수 있는 서버가 어디인지
+
+### Username, Password
+### Path
+- 리소스가 서버의 어디에 있는지
+
+### Parameter
+- 서버에 정확한 요청을 하기 위해 필요한 입력 파라미터를 받는데 사용
+```
+ftp://prep.ai.mit.edu/pub/gnu;type=d
+```
+- `name`: type, `value`: d
+
+### Query String
+- 많이 사용하니 그림으로 대체
+![image](https://user-images.githubusercontent.com/10507662/108624311-8a062e80-7487-11eb-8aa9-4b77cec40b6b.png)
+
+### Fragment
+- 서버에 fragment 는 보내지 않음
+- 리소스를 받은 후 fragment 를 통해 해당하는 일부를 보여줌
+
+## 단축 URL (URL Shorcuts)
+### Relative URL
+- URL 을 짧게 표시하는 방식
+  - scheme, host 및 다른 component 를 입력하지 않아도 됨
+  - resource 의 base URL 에서 알아낼 수 있음 (변환)
+- `fragment` 이거나 `URL 의 일부`
+
+![image](https://user-images.githubusercontent.com/10507662/108624441-5677d400-7488-11eb-8bda-82a0befd0f0f.png)
+
+#### base URL
+변환의 첫 단계는 base URL 찾기
+- 리소스에서 명시적으로 제공 - <BASE>태그로 제공
+- 리소스를 포함하고 있는 base URL - 위 그림과 같은 예
+- base URL 이 없는 경우 - absolute or imcomplete or broken
+
+#### Relative reference 해석
+- Relative -> Absolute 변환
+- 앞에서 본 component 단위로 분리
+- RFC 1808 에 최초 기술, RFC 2396 에 포함
+![image](https://user-images.githubusercontent.com/10507662/108624632-6d6af600-7489-11eb-9be7-24d4beec766d.png)
+
+### URL 확장 (Expandomatic URL)
+- 브라우저의 URL 을 입력한 다음 or 입력하는 동안에 자동으로 URL 확장
+
+#### hostname expansion
+- heuristic 만을 사용하여 일부 -> 전체로 확장
+- ex) `yahoo` 입력 시 -> www. .com 을 붙여서 만듦
+
+#### history expansion
+- 과거에 사용자가 방문한 URL 을 저장
+
+## Shady Characters (안전하지 않은 문자)
+- 안전한 전송?
+ - 정보가 유실될 위험 없이 URL 을 전송할 수 있다
+ - 반대 케이스) SMTP 는 특정 문자를 제거할 수 있는 전송 방식을 사용 (7bit encoding)
+
+### URL Character Set
+- 기존 Character Set 은 `US-ASCII`, `7bit` 를 사용
+  - 유럽 언어 or 비 라틴계 언어들을 지원하지 않음
+- 다른 언어 + 특정 이진 데이터 등을 지원하기 위해 escape 문자열 설계
+  - US-ASCII 에서는 사용이 금지된 문자들
+
+### Encoding Mechanism
+- `%` + ASCII 코드
+
+|Character|ASCII Code|Example|
+| ----------- | ----------- | ----------- |
+|-|126 (0x7E)|http://www.naver.com?%7Ejoe|
+|SPACE|32 (0x20)|http://www.naver.com?naver%20pay|
+
+### Character Restriction 문자 제한
+- 예약어, 반드시 encoding 해야하는 문자들
+
+![image](https://user-images.githubusercontent.com/10507662/108625051-0438b200-748c-11eb-8773-6198d473ba97.png)
+
+## Schemes
+- http, https, mailto, ftp
+- rtsp, rtspu (real time streaming protocol)
+- file, news, telnet
+
+## 미래
+### URN
+- 객체가 이동되더라도 항상 객체를 가리킬 수 있는 이름 제공
+- PURL: Persistent Uniform Resource Locations
+
+### 언제?
+- URL -> URN 로 체계를 바꾸기에는 매우 큰 작업
+- 언젠가 바뀌지 않을까 책에서는 이야기하지만 먼 듯 (2002년에 초판이 나왔으니..)
