@@ -233,3 +233,202 @@ ftp://prep.ai.mit.edu/pub/gnu;type=d
 ### 언제?
 - URL -> URN 로 체계를 바꾸기에는 매우 큰 작업
 - 언젠가 바뀌지 않을까 책에서는 이야기하지만 먼 듯 (2002년에 초판이 나왔으니..)
+
+# 3. HTTP message
+- inbound message, outbound message
+  - original server 쪽으로 향하는건 inbound, 사용자에게 돌아오는 것은 outbound
+- (request, response 의 관계없이) 모든 메시지는 downstream 으로 흐른다.
+![image](https://user-images.githubusercontent.com/10507662/109492019-ac262f00-7acd-11eb-846f-654799be2632.png)
+
+## The Parts of a Message
+- **start line**, **headers**, **body**
+### Syntax
+```
+// request message
+<method> <request-URL> <version>
+<headers>
+
+<entity-body>
+
+// response message
+<version> <status code> <reason-phrase>
+<headers>
+
+<entity-body>
+```
+
+![image](https://user-images.githubusercontent.com/10507662/109492552-82b9d300-7ace-11eb-8dbb-bfff2187067c.png)
+
+### Start line
+- request 에서는 무엇을 해야 하는지
+- response 에서는 무슨 일이 일어났는지
+
+#### Request line
+- `<method> <request-URL> <version>`
+- 어떤 동작 + 대상 + HTTP 버전
+
+#### Response line
+- `<version> <status code> <reason-phrase>`
+- HTTP 버전 + 상태 + 상태에 대한 텍스트 사유
+
+#### method
+- 요청 시 서버에게 무엇을 해야 하는지에 대한 내용
+
+|method|description|body|
+| ----------- | ----------- | ----------- |
+|GET|서버에서 문서를 가져옴|X|
+|HEAD|서버에서 문서의 헤더만 가져옴|X|
+|POST|서버가 처리해야 할 데이터를 보냄|O|
+|PUT|서버에 요청 메시지의 본문을 저장|O|
+|TRACE|메시지가 proxy 를 거쳐 서버까지 도달하는 과정 추적|X|
+|OPTIONS|서버가 어떤 메소드를 수행할 수 있는지 확인|X|
+|DELETE|서버에서 문서 제거|X|
+
+#### status code
+#### reason phrase
+- status code 에 대한 글로 된 설명
+
+#### version number
+- **`HTTP/x.y`** 형식
+- HTTP 통신을 하는 애플리케이션 간 capabilities 와 메시지 형식에 대한 단서 제공
+- 애플리케이션이 지원하는 가장 높은 HTTP version 을 의미함
+  - HTTP/1.0 의 애플리케이션 A 가 다른 애플리케이션 B 로 부터 응답으로 HTTP/1.1 로 받은 경우
+  - A 는 해당 메시지를 HTTP/1.1 메시지로 다룰 수 없음
+  - 여기서는 보낸 주체인 B 가 HTTP/1.1 까지 지원한다는 의미
+
+### Headers
+- General, Request, Response, Entity, Extension header
+
+### Entity body
+- optional
+- 이미지, 비디오, HTML, ...
+
+## Method
+- 서버가 모든 메소드를 구현하지는 않음
+- Safe method: GET, HEAD
+  - HTTP 요청의 결과로 서버에 어떤 변화도 없음
+
+### GET
+- 서버에 리소스 요청
+
+### HEAD
+- GET 처럼 행동하나 서버는 헤더만 돌려줌
+  - 리소스를 가져오지 않고 타입 등의 정보를 알 수 있음
+  - status code 를 통해 개체 존재 확인 가능
+  - 헤더를 확인하여 리소스 변경 검사
+- 서버 개발자는 GET 으로 받는 헤더가 정확히 일치함을 보장해야 함
+
+### PUT
+- 서버가 request body 를 가지고 URL 대로 새 문서를 만들거나
+- 이미 존재한다면 body 로 교체
+
+### POST
+- 서버에 입력 데이터를 전송하기 위해 설계됨
+
+### TRACE
+- 자신의 요청이 firewall, proxy, gateway 등을 통과하여 서버에 어떻게 도착했는지 보여줌
+- 서버에서 loopback 진단을 수행 -> 받은 요청 메시지를 body 에 넣어 응답
+- 주로 진단을 위해 사용
+  - request 가 의도한 request/response chain 을 이루는지
+  - proxy, 다른 애플리케이션이 request 에 어떤 영향을 미치는지
+
+### OPTIONS
+### DELETE
+- request URL 로 지정한 리소스 삭제 요청
+- 삭제 수행을 보장하지 못함
+  - HTTP 명세에서 서버가 클라이언트에게 알리지 않고 요청을 무시하는 것을 허용함
+
+### Extension method
+- HTTP 는 필요에 따라 확장해도 문제가 없도록 설계되어 있음
+- 새로 기능을 추가해도 과거에 구현된 소프트웨어들의 오동작을 유발하지 않음
+- 알려지지 않은 메소드가 담긴 메시지를 전달하고자 하면, `501 Not Implemented` 로 응답할 수 있음
+
+## Status code
+- 필요 시 찾아보는 정도로 하고 많이 생략
+
+### 100 - 199: Informational
+- HTTP/1.1 에서 도입
+- 복잡한데 이 복잡성을 감수할 만한 가치가 있는지 논란이 되고 있음
+  - 안 쓰이는거 보면 복잡하고 의미없긴 한 듯
+- 간단하게 표로만 추가
+
+|status code|reason phrase|meaning|
+| ----------- | ----------- | ----------- |
+|100|Continue|요청의 시작 부분 일부가 받아들여졌으며, 클라이언트는 나머지를<br/>계속이어서 보내야함, 서버는 반드시 요청을 받아 응답해야 함|
+|101|Switching Protocols|클라이언트가 Upgrade 헤더에 나열한 것 중 하나로<br/> 서버가 프로토콜을 바꾸었음|
+
+### 200 - 299: Success
+### 300 - 399: Redirection
+- 리소스에 대해 다른 위치를 사용하라고 말해주거나, 다른 대안 응답을 제공
+- 특정 몇 가지는 애플리케이션의 로컬 복사본이 원래 서버와 비교했을 때 유효한지 확인하기 위해 사용
+![image](https://user-images.githubusercontent.com/10507662/109499343-1d6adf80-7ad8-11eb-9733-3c90afad9635.png)
+
+### 400 - 499: Client Error
+### 500 - 599: Server Error
+
+## Header
+### Genenal header
+- 기본적인 정보 제공
+- 클라이언트, 서버 둘 다 사용
+- Connection, Date, MIME-Version, Trailer chunked transfer, Transfer-Encoding, Upgrade, Via
+
+#### general cache header
+- 매번 원 서버로부터 객체를 가져오는 대신, 로컬 복사본으로 캐시하는 헤더 (HTTP/1.0 에서 도입)
+- `Cache-Control`
+- `Pragma` 도 있는데 Deprecated
+
+### Request header
+- request message 에서만 의미를 갖는 헤더
+- Client-IP, From, Host, Referer, User-Agent 등
+- (별개로) User-Agent 는 Deprecated 처리 예정이며, Client Hints 로 대체될 예정
+
+#### Accept 관련 헤더
+- 클라이언트가 서버에게 자신의 preference 와 capability 를 알려줌
+- Accept, Accept-Charset, Accept-Encoding, Accept-Language, TE
+
+#### Conditional request header
+- Expect, Range 외
+
+|header|description|
+| ----------- | ----------- |
+|If-Match|entity tag 가 일치하는 경우에만 가져옴|
+|If-Modified-Since|주어진 날짜 이후에 리소스가 변경되지 않았따면 요청 제한|
+|If-None-Match||
+|If-Range||
+|If-Unmodified-Since||
+
+#### Request security header
+|header|description|
+| ----------- | ----------- |
+|Authorization|클라이언트가 서버에게 제공하는 인증 정보|
+|Cookie|클라이언트가 서버에게 서버에게 토큰 전달, 보안 헤더는 아니지만 영향은 있음|
+|Cookie2|쿠키의 버전을 알려줌|
+
+#### Proxy request header
+|header|description|
+| ----------- | ----------- |
+|Max-Forwards|요청이 전달도리 수 있는 최대 횟수, TRACE 와 사용|
+|Proxy-Authorization|proxy 에서 인증|
+|Proxy-Connection||
+
+### Response header
+- Age, Public, Retry-After, Server, Title, Warning
+
+#### Negotiation header
+- Accept-Ranges: 서버가 리소스에 대해 받아들일 수 있는 범위의 형태
+- Vary: 서버가 확인해야하며, 응답에 영향을 줄 수 있는 헤더 목록
+
+#### Response security header
+- Proxy-Authenticate, Set-Cookie, Set-Cookie2, WWW-Authenticate
+
+### Entity header
+- Allow, Location
+
+#### Content header
+- Content-
+  - Base, Encoding, Language, Length, Location, MD5, Range, Type
+
+#### Entity caching header
+- ETag, Expires, Last-Modified
+
+# 4. Connection Management
