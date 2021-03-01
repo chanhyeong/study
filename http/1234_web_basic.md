@@ -126,7 +126,7 @@
   - ftp://ftp.test.com/excel.xls
 
 ## URL Syntax
-**`<scheme>://<username>:<password>:<host>:<port>/<path>;<params>?<query>#<fragment>`**
+**`<scheme>://<username>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>`**
 
 |Component|Description|Default value|
 | ----------- | ----------- | ----------- |
