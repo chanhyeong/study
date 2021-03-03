@@ -430,5 +430,3 @@ ftp://prep.ai.mit.edu/pub/gnu;type=d
 
 #### Entity caching header
 - ETag, Expires, Last-Modified
-
-# 4. Connection Management
