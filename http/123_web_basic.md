@@ -407,7 +407,7 @@ ftp://prep.ai.mit.edu/pub/gnu;type=d
 #### Proxy request header
 |header|description|
 | ----------- | ----------- |
-|Max-Forwards|요청이 전달도리 수 있는 최대 횟수, TRACE 와 사용|
+|Max-Forwards|요청이 전달될 수 있는 최대 횟수, TRACE 와 사용|
 |Proxy-Authorization|proxy 에서 인증|
 |Proxy-Connection||
 
