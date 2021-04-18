@@ -94,8 +94,8 @@ SELECT * FROM (
 | - | - | - | - | - | - | - | - | - |
 |1|PRIMARY|<derived2>|ALL| | | |30| |
 |2|DERIVED|e1|index|ix_hiredate|3| |300584|Using index|
-|3|DERIVED|e2|index|ix_hiredate|3| |300584|Using index|
-|4|DERIVED|e3|index|ix_hiredate|3| |300584|Using index|
+|3|UNION|e2|index|ix_hiredate|3| |300584|Using index|
+|4|UNION|e3|index|ix_hiredate|3| |300584|Using index|
 | |UNION RESULT|<union2,3,4>|ALL| | | | |
 
 #### DEPENDENT UNION (외부 영향을 받음), UNION RESULT (UNION 임시 테이블)
