@@ -282,3 +282,22 @@ SELECT * FROM dept_emp WHERE dept_no = 'd005' AND emp_no = 1001;
 - Filtered column 으로 성능 이슈를 확인할 수 있음 (아래에서 확인)
 
 ### EXPLAIN EXTENDED (Filtered)
+- MySQL engine 에 의해서 얼마나 필터링되었는지
+- 최종적으로 레코드가 얼마나 남았는지에 대한 비율 (%), rows 와 동일하게 추정치임 (실제와 다를 수 있음)
+- 아래 예는 100 건 읽은 후 20% 만 남음
+```sql
+EXPLAIN
+SELECT * FROM employees
+WHERE AND emp_no BETWEEN 11 AND 110 AND gender = 'M';
+```
+|id|select_type|table|type|Key|key_len|ref|rows|filtered|Extra|
+| - | - | - | - | - | - | - | - | - | - |
+|1|SIMPLE|employees|range|PRIMARY|4|NULL|100|20|Using where|
+
+### EXPLAIN EXTEDNED (추가 Optimizer 정보)
+- 분석된 Parse tree 를 재조합하여 쿼리 문장과 비슷한 순서대로 나열해서 보여주는 기능
+- Optimizer 가 쿼리를 어떻게 해석했고, 어떻게 쿼리를 변환했으며 어떤 처리가 수행했는지 판단 가능
+
+### EXPLAIN PARTITIONS
+- 파티션 테이블의 실행 계획 정보 확인
+- 파티션 테이블에 실행되는 쿼리가 얼마나 파티션 기능을 잘 활용하고 있는지 확인
