@@ -224,3 +224,32 @@ FROM employees e INNER JOIN salaries s USING (emp_no)
 
 #### join buffer 를 이용한 JOIN (Using join buffer)
 - driven table 의 full table scan 이나 index full scan 을 피할 수 없다면, driving table 에서 읽은 레코드르 메모리에 캐시 -> drive table 과 메모리 캐시를 join
+
+#### INNER/OUTER JOIN 선택
+- 성능 차이 없음, 용도에 맞게 선택하면 됨
+
+### (요약) 실행 계획 분석 시 주의 사항
+#### select_type
+DERIVED, UNCACHEABLE SUBQUERY, DEPENDENT SUBQUERY
+
+#### type
+ALL, index
+
+#### key
+아무 것도 없으면 주의. 인덱스 추가하는게 좋음
+
+#### rows
+실제 가져오는 레코드 수보다 더 많이 표시되는 경우
+인덱스가 정상적으로 사용되는지 or 인덱스가 충분히 작업 범윌르 좁혀줄 수 있는 컬럼으로 구성됐는지
+
+#### extra
+- 좋지 않은 경우
+  - Ranged checked for each record (index map: N)
+  - Using filesort
+  - Using join buffer (MySQL 5.1부터)
+  - Using temporary
+  - Using where
+- 좋은 경우
+  - Distinct
+  - Using index
+  - Using index for group-by
