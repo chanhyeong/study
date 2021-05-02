@@ -28,7 +28,7 @@
 - message value, 위 동일
 
 ```java
-private Properties properties = new Properties();
+Properties properties = new Properties();
 properties.put("bootstrap.servers", "broker1:9092, broker2:9092");
 properties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 properties.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
@@ -194,4 +194,41 @@ producer.send(record, new ProduceCallback());
   - Deserializer 는 데이터를 쓸 때 사용되었던 schema 를 사용해야 함
     - Avro 파일은 header + data block 으로 되어 있으며, header 에 schema 저장
 
-#### Kafka 에서 Avro record 사용하기
+### Kafka 에서 Avro record 사용하기
+- Avro: data file 에 schema 전체를 저장
+  - 이걸 record (ProducerRecord) 에 담으면 크기가 2배 이상이 되므로 부담
+  - Avro 는 record 를 읽을 때 schema 전체가 필요
+  - **schema 를 record 가 아닌 다른 곳(Schema Registry)에 저장**
+
+#### Schema Registry
+- kafka 에 데이터를 쓸 때 사용되는 모든 schema 를 저장하는 곳
+- kafka record 에는 schema id 만 저장
+- consumer 는 id 로 schema 정보를 가져와서 deserialize
+
+![image](https://user-images.githubusercontent.com/10507662/116814258-f346a400-ab92-11eb-8228-2ce42533ea92.png)
+
+```java
+Properties properties = new Properties();
+properties.put("bootstrap.servers", "broker1:9092, broker2:9092");
+properties.put("key.serializer", "io.confluent.kafka.serializers.KafkaAvroSerializer");
+properties.put("value.serializer", "io.confluent.kafka.serializers.KafkaAvroSerializer");
+properties.put("schema.registry.url", schemaUrl);
+
+Producer<String, Customer> producer = new KafkaProducer<>(properties);
+
+while (true) {
+  Customer cumtomer = CustomerGenerator.getNext(); // POJO 가 아닌 Avro 에 특화된 Customer 클래스의 객체
+  ProducerRecord<String, Customer> record = new ProducerRecord<>(topic, customer.getName(), customer);
+  producer.sned(record);
+}
+```
+
+### Partition
+- key 목적
+  - 메시지를 식별하는 추가 정보 표시
+  - 토픽의 여러 파티션 중 하나를 결정하기 위함
+    - hash 를 구하여 지정
+- `key == null` 인 경우: 사용 가능한 파티션들 중 랜덤으로 하나 선택, round robin (메시지가 적은 파티션을 순차적으로 순환)
+
+#### Custom partitoner 구현
+- `org.apache.kafka.clients.producer.Partitioner` implementation
