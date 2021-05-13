@@ -165,9 +165,121 @@ try {
 - rebalancing 시작 전 + Consumer 가 consume 중단 후 호출
 - offset commit 실행 시점
 
-#### public void onPartitionsAssgined(Collection<TopicPartition> partitions)
+#### public void onPartitionAssigned(Collection<TopicPartition> partitions)
 - partition 이 재할당된 후, Consumer 가 partition 을 새로 받아 consume 시작할 때
 
 ## 특정 offset 을 사용하여 레코드 consume
 - 특정 offset 을 찾을 수 있음
 - 이전 메시지들로 돌아가거나, 메시지를 건너뛰는 경우
+
+#### kafka 메시지를 읽고 처리 결과를 DB 등에 저장하는 일반적인 케이스
+```java
+while (true) {
+  ConsumerRecords<String, String> records = consumer.poll(100);
+  for (ConsumerRecord<String, String> record : records) {
+    currentOffsets.put(new TopicPartition(record.topic(), record.partition()), record.offset());
+    processRecord(record);
+    storeRecordInDB(record);
+    consumer.commitAsync(currentOffsets); // 각 record 를 처리할 때마다 offset commit
+  }
+}
+```
+- 레코드가 중복 처리되어 중복 데이터가 저장될 수 있음
+  - DB 에는 저장되나 offset commit 이 실패할 수 있음, atomic 하지 않음
+
+```java
+public class SaveOffsetsOnRebalance implements ConsumerRebalanceListener {
+  public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+    commitDBTransaction(); // rebalance 시 지금 DB 저장된건 commit
+  }
+  
+  public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+    for(TopicPartition partition: partitions)
+      consumer.seek(partition, getOffsetFromDB(partition)); // rebalance 가 완료되면 seek() 으로 읽을 위치를 변경해둠
+    }
+  }
+}
+
+consumer.subscribe(topics, new SaveOffsetOnRebalance(consumer));
+consumer.poll(0); // consumer group 에 합류, partition 할당 받음
+
+for (TopicPartition partition: consumer.assignment())
+  consumer.seek(partition, getOffsetFromDB(partition)); // 할당된 partition 들의 offset 을 찾음
+  
+while (true) {
+  ConsumerRecords<String, String> records =
+  consumer.poll(100);
+  
+  for (ConsumerRecord<String, String> record : records) {
+    processRecord(record);
+    storeRecordInDB(record);
+    storeOffsetInDB(record.topic(), record.partition(), record.offset()); // offset 을 broker 로 보내지 않고 DB 에 같이 저장
+  }
+  
+  commitDBTransaction();
+}
+```
+
+## Polling loop 를 벗어나는 법
+- 다른 thread 에서 `KafkaConsumer` 의 `wakeup()` 을 호출
+- main thread 에서는 java 의 shutdown hook 사용
+- Consumer thread 종료 시 `close()` 를 호출해야 함
+
+## Deserializer
+- Custom 은 생략
+
+### Avro deserializer 사용
+```java
+Properties props = new Properties();
+props.put("bootstrap.servers", "broker1:9092,broker2:9092");
+props.put("group.id", "CountryCounter");
+props.put("key.serializer", "org.apache.kafka.common.serialization.StringDeserializer");
+props.put("value.serializer", "io.confluent.kafka.serializers.KafkaAvroDeserializer");
+props.put("schema.registry.url", schemaUrl);
+
+String topic = "customerContacts"
+KafkaConsumer consumer = new KafkaConsumer(createConsumerConfig(brokers, groupId, url));
+consumer.subscribe(Collections.singletonList(topic));
+
+System.out.println("Reading topic:" + topic);
+
+while (true) {
+  ConsumerRecords<String, Customer> records = consumer.poll(1000);
+  
+  for (ConsumerRecord<String, Customer> record: records) {
+    System.out.println("Current customer name is: " + record.value().getName());
+  }
+  
+  consumer.commitSync();
+}
+```
+
+## Standalone Consumer
+- Consumer group 을 사용하지 않고 사용
+- 하나의 topic 의 모든 파티션이나 하나의 특정 파티션 데이터를 항상 하나의 Consumer 가 읽음
+- Consumer 전용 topic, partition 을 할당 후 메시지를 읽고 offset commit
+- 어떤 파티션을 읽어야할지 알 때는 **subscribe** 하지 않고 **assign** 해줌
+- 파티션이 추가되도 리밸런싱이 일어나지 않으므로 주기적으로 `partitionsFor()` 호출해야 함
+```java
+List<PartitionInfo> partitionInfos = null;
+partitionInfos = consumer.partitionsFor("topic"); // partition 정보 가져오기
+
+if (partitionInfos != null) {
+  for (PartitionInfo partition : partitionInfos)
+    partitions.add(new TopicPartition(partition.topic(),partition.partition()));
+    
+  consumer.assign(partitions); // partition 할당
+  
+  while (true) {
+    ConsumerRecords<String, String> records =
+    consumer.poll(1000);
+    
+    for (ConsumerRecord<String, String> record: records) {
+      System.out.printf("topic = %s, partition = %s, offset = %d, customer = %s, country = %s\n", 
+        record.topic(), record.partition(), record.offset(), record.key(), record.value());
+    }
+
+    consumer.commitSync();
+  }
+}
+```
