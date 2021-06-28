@@ -20,4 +20,14 @@
 - Domain Driven Design - Tacking complexity in the heart of software
   - pdf: http://sd.blackball.lv/library/Domain-Driven_Design_-_Tackling_Complexity_in_the_Heart_of_Software.pdf
 - CQRS: https://cqrs.files.wordpress.com/2010/11/cqrs_documents.pdf
+
 ### ...
+
+## Subject pool
+design pattern  
+lucene  
+netty  
+nginx  
+spring  
+oop  
+...
