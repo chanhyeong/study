@@ -13,7 +13,7 @@ layered architecture
 - 각 계층에서 프로그램의 특정 측면만을 다룬다
 - 토대로 응집력 있는 설계 -> 설계를 쉽게 이해
 
-| | |
+| name | description |
 | - | - |
 | User Interface | 사용자에 view + 사용자의 command<br/>외부 컴퓨터가 될 수도 있음 |
 | Application | 소프트웨어가 수행할 작업 정의 + 도메인 객체가 문제를 해결<br/> 다른 시스템의 application layer 와 상호작용<br> 얇게 유지 (업뮤 규칙 및 지식이 없음, 작업을 조정하고 도메인 객체의 협력자에 작업 위임)<br/> 업무 상황의 상태는 없지만 프로그램 작업의 진행 상태는 가질 수 있음 |
