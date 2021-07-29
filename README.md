@@ -19,6 +19,7 @@
 ### DDD (2021/06 ~)
 - Domain Driven Design - Tacking complexity in the heart of software
   - pdf: http://sd.blackball.lv/library/Domain-Driven_Design_-_Tackling_Complexity_in_the_Heart_of_Software.pdf
+  - study in https://github.com/juniors-dev-study/domain-driven-design
 - CQRS: https://cqrs.files.wordpress.com/2010/11/cqrs_documents.pdf
 
 ### ...
