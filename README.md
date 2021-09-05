@@ -8,7 +8,7 @@
 - Http The Definitive Guide
 - pdf: https://github.com/pangpang834/pybook/blob/master/O'Reilly%20-%20HTTP%20-%20The%20Definitive%20Guide.pdf
 
-### MySQL (2021/04 ~)
+### MySQL (2021/04 ~ suspend)
 - Real MySQL
 
 ### Kafka (2021/04 ~ 2021/07)
