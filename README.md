@@ -22,6 +22,10 @@
   - study in https://github.com/juniors-dev-study/domain-driven-design
 - CQRS: https://cqrs.files.wordpress.com/2010/11/cqrs_documents.pdf
 
+### Spring
+- Spring in Action 5th edition (2021/09 ~)
+- Mastering Spring 5.0, ...
+
 ### Design Pattern (2021/??)
 - Design Patterns: Elements of Reusable Object-Oriented Software
 - pdf: https://w3sdesign.com/GoF_Design_Patterns_Reference0100.pdf
@@ -32,8 +36,6 @@
 lucene (lucene in action)  
 netty (netty in action)  
 nginx  
-spring (spring in action)  
 java (Optimizing Java)
-kotlin  
 oop  
 ...
