@@ -5,6 +5,7 @@ Enterprise Integration Patterns (2003) 에서 보여진 통합 패턴을 사용�
 1. XML (책에 예시가 하나 있지만, 비추천하여 정리하지 않음)
 2. Java
 3. Java DSL
+4. (책에는 없음) [Kotlin DSL](https://docs.spring.io/spring-integration/reference/html/kotlin-dsl.html#kotlin-dsl)
 
 ## Component 구성
 | 종류 | 설명 |
@@ -163,8 +164,8 @@ fun orderSplitter(): OrderSplitter = OrderSplitter()
 // router 에서 받아서 적합한 하위 플로우로 전달 (상위 설명의 2번)
 @Bean
 @Router(inputChannel = "splitOrderChannel")
-fun splitOrderRouter(): MessageRouter = {
-  val rotuer = PayloadTypeRouter()
+fun splitOrderRouter(): MessageRouter = MessageRouter {
+  val router = PayloadTypeRouter()
   router.setChannelMapping(BillingInfo.javaClass.name, "billingInfoChannel")
   router.setChannelMapping(List.javaClass.name, "lineItemsChannel")
   return router
@@ -193,4 +194,96 @@ IntegrationFlows
 ```
 
 ### Service Activator
-input channel 의 메시지를 수신하여 MessageHandler 인터페이스를 구현한 bean 에 전달
+input channel 의 메시지를 수신하여 `MessageHandler` 인터페이스를 구현한 bean 에 전달
+
+```kotlin
+// input 을 받아서 처리
+@Bean
+@ServiceActivator(inputChannel = "someChannel")
+fun sysoutHandler(): MessageHandler = MessageHandler {
+  println("Message payload: ${it.payload}")
+}
+
+// =====================
+
+// Java DSL
+@Bean
+fun someFlow(): IntegrationFlow = IntegrationFlows
+  ...
+  .handle {
+    println("Message payload: ${it.payload}")
+  }
+  ...
+  .get()
+
+// =====================
+
+// input 을 받아서 output 으로 전달
+@Bean
+@ServiceActivator(inputChannel = "orderChannel", outputChannel = "completeChannel")
+fun orderHandler(): GenericHandler<Order> = GenericHandler { payload, headers ->
+  orderRepo.save(payload)
+}
+
+// =====================
+
+// Java DSL
+@Bean
+fun orderFlow(orderRepo: OrderRepository): IntegrationFlow = IntegrationFlows
+  ...
+  .<Order>handle { payload, headers
+    orderRepo.save(payload)
+  }
+  ...
+  .get()
+```
+
+### Gateway
+application 이 Integration Flow 로 데이터를 submit + optional 하게 처리 결과를 받는 수단
+
+**인터페이스로 정의하며, spring integration 이 runtime 에 자동으로 구현체를 제공**
+
+```kotlin
+// 정의
+@Bean
+@Gateway(defaultRequestChannel = "inChannel", defaulReplyChannel = "outChannel")
+interface UpperCaseGateway {
+  fun uppercase(in: String): String
+}
+
+// =====================
+
+// Java DSL
+@Bean
+fun uppercaseFlow(): IntegrationFlow = IntegrationFlows
+  .from("inChannel")
+  .<String, String>transfrom { it.uppercase() }
+  .channel("outChannel")
+  .get()
+```
+
+### Channel adpater
+IntegrationFlow 의 입/출구 (inbound/outbound)
+
+```kotlin
+// 정의
+@Bean
+@InboundChannelAdapter(poller = @Poller(fixedRate = "1000"), channel = "numberChannel")
+fun numberSource(source: AtomicInteger): MessageSource<Int> = MessageSource {
+  GenericMessage(source.getAndIncrement())
+}
+
+// =====================
+
+// Java DSL
+@Bean
+fun someFlow(integerSource: AtomicInteger): IntegrationFlow = IntegrationFlows
+  .from(integerSource, "getAndIncrement") {
+    it.poller(Pollers.fixedRate(1000))
+  }
+  ...
+  .get()
+```
+
+### Endpoint module
+https://docs.spring.io/spring-integration/reference/html/endpoint-summary.html#spring-integration-endpoints
