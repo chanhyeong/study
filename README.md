@@ -4,14 +4,14 @@
 - Kotlin In Action 기반
 - livebook: https://livebook.manning.com/book/kotlin-in-action
 
-### http (2021/02 ~ 2021/04)
+### http (2021/02 ~ 04)
 - Http The Definitive Guide
 - pdf: https://github.com/pangpang834/pybook/blob/master/O'Reilly%20-%20HTTP%20-%20The%20Definitive%20Guide.pdf
 
 ### MySQL (2021/04 ~ suspend)
 - Real MySQL
 
-### Kafka (2021/04 ~ 2021/07)
+### Kafka (2021/04 ~ 07)
 - Kafka The Definitive Guide
   - pdf: https://www.confluent.io/wp-content/uploads/confluent-kafka-definitive-guide-complete.pdf
 - Kafka 데이터 플랫폼의 최강자
@@ -23,7 +23,7 @@
 - CQRS: https://cqrs.files.wordpress.com/2010/11/cqrs_documents.pdf
 
 ### Spring
-- Spring in Action 5th edition (2021/09 ~)
+- Spring in Action 5th edition (2021/09 ~ 10)
 - Mastering Spring 5.0, ...
 
 ### Design Pattern (2021/??)
