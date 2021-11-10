@@ -11,10 +11,11 @@
 ### MySQL (2021/04 ~ suspend)
 - Real MySQL
 
-### Kafka (2021/04 ~ 07)
-- Kafka The Definitive Guide
+### Kafka
+- Kafka The Definitive Guide (2021/04 ~ 07)
   - pdf: https://www.confluent.io/wp-content/uploads/confluent-kafka-definitive-guide-complete.pdf
 - Kafka 데이터 플랫폼의 최강자
+- 실전 카프카 개발부터 운영까지
 
 ### DDD (2021/06 ~)
 - Domain Driven Design - Tacking complexity in the heart of software
