@@ -27,6 +27,10 @@
 - Spring in Action 5th edition (2021/09 ~ 10)
 - Mastering Spring 5.0, ...
 
+### Cloud native patterns (2021/12 ~)
+- Cloud native patterns
+- pdf: https://livebook.manning.com/book/cloud-native
+
 ### Design Pattern (2021/??)
 - Design Patterns: Elements of Reusable Object-Oriented Software
 - pdf: https://w3sdesign.com/GoF_Design_Patterns_Reference0100.pdf
