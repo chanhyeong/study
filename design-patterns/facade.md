@@ -1,4 +1,4 @@
-# FACADE (254p ~ 64p)
+# FACADE (254p ~ 264p)
 
 ## Intent
 한 subsystem 내의 인터페이스 집합에 대한 획일화된 interface 를 제공  
