@@ -17,7 +17,7 @@
 - Kafka 데이터 플랫폼의 최강자
 - 실전 카프카 개발부터 운영까지
 
-### DDD (2021/06 ~)
+### DDD (2021/06 ~ 09)
 - Domain Driven Design - Tacking complexity in the heart of software
   - pdf: http://sd.blackball.lv/library/Domain-Driven_Design_-_Tackling_Complexity_in_the_Heart_of_Software.pdf
   - study in https://github.com/juniors-dev-study/domain-driven-design
