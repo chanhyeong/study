@@ -1,1 +1,5 @@
 :toc:
+
+= Enterprise Integration Patterns
+
+include::1_solving_integration_problems_using_patterns.adoc[]

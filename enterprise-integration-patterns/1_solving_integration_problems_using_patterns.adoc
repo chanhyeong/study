@@ -1,6 +1,6 @@
-= 1. 패턴을 이용한 통합 문제 해결
+== 1. 패턴을 이용한 통합 문제 해결
 
-== SOA (Service-Oriented Architecture)
+=== SOA (Service-Oriented Architecture)
 
 * 서비스 = 공유 비즈니스 기능 = 특정 기능을 한 번만 구현하여 다른 시스템에 노출
 ** 보편적으로 사용 가능하고, 서비스 요청자의 요청에 응답하는 잘 정의된 기능
