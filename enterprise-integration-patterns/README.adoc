@@ -2,4 +2,6 @@
 
 = Enterprise Integration Patterns
 
+toc::[]
+
 include::1_solving_integration_problems_using_patterns.adoc[]
