@@ -52,8 +52,8 @@ LIMIT 5
 * 각 노드는 char 하나를 저장, 26개의 자식 노드를 가질 수 있음
 * 각 트리 노드는 하나의 단어 or prefix string 을 나타냄
 
-p: prefix length
-n: number of node in trie
+p: prefix length +
+n: number of node in trie +
 c: number of children in node
 
 ==== prefix 최대 길이 제한
