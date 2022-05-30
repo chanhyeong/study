@@ -1,0 +1,125 @@
+= 13. 검색어 자동완성 시스템
+autocomplete, typeahead, search-as-you-type, incremental search
+
+== 문제 이해 및 설계 범위 확정
+* 검색어의 첫 부분, 5개
+** 5개는 질의 빈도에 따른 인기 순위
+* 영어, 추후 다국어 지원 고려
+* 영어 소문자로 가정
+* 일간 사용자 천만
+
+=== 요구사항
+* 빠른 응답 속도
+* 연관성
+* 정렬
+* 규모 확장성
+* 고가용성
+
+=== 개략적 규모 추정
+* 한 사용자가 10건의 검색
+* 질의 당 평균 20바이트
+** 문자 인코딩 ASCII (1문자 = 1바이트)
+** 평균 4개 단어, 단어 당 5글자 = 4 x 5 = 20바이트
+* 단어 입력 시마다 백엔드로 요청
+* 초당 24000 건 = 천만 사용자 x 10 쿼리 x 20자 / 24h / 3000s
+* 20% 는 신규 검색어 -> 0.4GB 가 매일 추가
+
+== 개략적 설계안 제시 및 동의 구하기
+=== 데이터 수집 서비스
+사용자가 입력한 질의를 실시간으로 수집하는 시스템 +
+질의문 + 사용빈도를 저장하는 frequency table
+
+=== 질의 서비스
+주어진 질의에 다섯 개의 인기 검색어를 정렬해놓는 서비스
+
+* query - 질의문 필드, frequency - 빈도 필드
+
+[source, SQL]
+----
+SELECT *
+FROM frequency_table
+WHERE query LIKE 'prefix%'
+ORDER BY frequency DESC
+LIMIT 5
+----
+
+== 상세 설계
+
+=== trie (prefix tree) 자료 구조
+문자열을 간략하게 저장할 수 있는 자료 구조
+
+* tree 형태, root 는 empty char
+* 각 노드는 char 하나를 저장, 26개의 자식 노드를 가질 수 있음
+* 각 트리 노드는 하나의 단어 or prefix string 을 나타냄
+
+p: prefix length
+n: number of node in trie
+c: number of children in node
+
+==== prefix 최대 길이 제한
+긴 검색어를 입력하는 일이 없으므로 50 정도로 제한
+
+==== 노드에 인기 검색어 캐시
+각 노드에 k 개의 인기 검색어를 저장
+
+=== 데이터 수집 서비스
+* 쿼리마다 trie 를 갱신하면 서비스가 느려짐
+* trie 가 만들어지고 나면 인기 검색어는 자주 바뀌진 않을 것
+
+==== 데이터 분석 서비스 로그
+검색창에 입력된 질의에 관한 원본 데이터 보관 (query - time)
+
+==== 로그 취합 서버
+잘 취합 (aggregation) 하여 시스템이 소비기 쉽게 변환 +
+취합 주기는 서비스 성향에 따라 결정
+
+==== 취합된 데이터
+query - time (취합일) - frequency
+
+==== 작업 서버
+주기적으로 비동기적 job 을 실행하는 서버 집합
+
+trie 자료 구조를 만들고 trie db 에 저장
+
+==== trie cache
+분산 캐시 시스템, read 연산 성능 높이기
+
+==== trie db
+* document store: 주기적으로 trie 를 serialize 하여 저장
+* key-value store - 아래 2개 중 선택
+** 모든 prefix 를 hashtable key 로 변환
+** 각 trie 노드에 보관된 모든 데이터를 hashtable 값으로 변환
+
+=== 질의 서비스
+API -> trie cache -> trie db
+
+AJAX, browser caching, data sampling (질의 요청 N개 중 1개만 로깅하도록 하여 저장공간 절약)
+
+=== trie 연산
+==== trie 생성
+==== trie 갱신
+* 방법
+.. 새로운 trie 를 만들어 기존 trie 를 대체
+.. trie 의 각 노드를 개별적으로 갱신 (성능이 좋지 않음)
+
+==== 검색어 삭제
+API <-> trie cache 사이에 filter layer 를 두기
+
+=== 저장소 규모 확장
+* 영어만 제공하면 되기 때문에 첫 글자 기준으로 sharding 을 하는 방법을 생각할 수 있음
+** 이럴 경우 sharding 은 26대로 제한됨
+** 두 번째 글자까지로 확장할 수 있음 (aa, ab, ...)
+* 서버 간 불균형 (c > x)
+** shard map manager - 단어별로 노드 라우팅
+
+== 마무리
+* 다국어 지원? -> unicode 도입
+* 국가별 인기 검색어 순위? -> 국가별로 다른 trie 를 사용하도록
+* 실시간으로 변하는 검색어 추이 반영?
+** 현재 설계가 적합하지 않음
+*** 주기가 너무 길다, trie 구성에 너무 많은 시간이 소요된다
+** 몇 가지 아이디어만 추가
+*** sharding 으로 작업 대상 데이터를 줄임
+*** ranking model 을 바꾸어 최근 검색어에 높은 가중치
+*** 데이터가 스트림 형태로 올 수 있음 -> 지속적으로 생성됨 -> 스트림 프로세싱
+**** Hadoop MapReduce, Spark Streaming, Storm, Kafka
