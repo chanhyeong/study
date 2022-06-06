@@ -1,0 +1,171 @@
+= 14. 유튜브 설계
+
+== 문제 이해 및 설계 범위 확정
+
+* 비디오 얿로드 (모든 비디오 종류 및 해상도, 1GB 로 제한) 및 시청
+* 재생 품질 선택
+* 클라우드 서비스 활용 가능
+* 모바일 앱, 웹브라우저, 스마트 TV
+
+=== 개략적 규모 추정
+
+* DAU 5백만
+* 1명 당 5개 시청, 10% 사용자가 1개 업로드, 평균 크기 300MB
+** 5백만 x 10% x 300MB = 하루 1TB
+* CDN 비용 (CloudFront 기준)
+** $0.02 / 1GB
+** 5백만 x 5 영상 x 0.3 GB x $0.02 = $150,000 = 1억 8,780만원
+
+== 개략적 설계안 제시 및 동의 구하기
+
+[quote]
+BLOB (Binary Large Object) 저장소 - Netfix (AWS), Facebook (Akamai CDN)
+
+* client
+* CDN: 비디오 저장 및 스트리밍
+* API 서버: 스트리밍을 제외한 모든 요청
+
+=== 비디오 업로드 절차 (253p 그림)
+* 사용자, 로드밸런서, API 서버
+* metadata db: 비디오의 메타데이터 보관. 샤딩 및 복제 (성능 및 가용성)
+* metadata cache: 비디오 메타데이터, 사용자 객체 캐시 (성능)
+* original storage: 비디오 보관 파일 저장소 시스템 (BLOB)
+** binary data 를 하나의 개체로 보관하는 DBMS
+* transcoding server: (= 인코딩) 비디오의 포맷을 변환하는 절차. 단말 or 대역폭 요구사항에 맞는 최적의 스트리밍 제공
+* transcoding storage: transcoding 이 완료된 비디오를 저장하는 BLOG 저장소
+** transcoding 이 끝나면 original storage 에 데이터가 필요한가??
+* CDN: 비디오 캐시
+* completion queue: transcoding 완료 이벤트를 보관할 큐
+* completion handler: 이벤트를 꺼내서 metadata cache 및 db 를 갱신할 서버들
+
+==== a. 비디오 업로드 프로세스
+. 원본 저장소에 업로드
+. 트랜스코딩 서버가 가져와서 트랜스코딩 시작
+.. 완료되면 병렬 수행
+... 트랜스코딩 비디오 저장소로 업로드
+... 트랜스코딩 완료 큐에 넣음
+.... 끝난 비디오를 CDN 에 올림
+.... 핸들러가 큐에서 꺼내서 메타데이터 db, cache 갱신
+. API 서버가 단말에 업로드 완료를 알림
+
+==== b. 메타데이터 갱신 (비디오 URL, 크기, 해상도, 포맷, 사용자 정보 등)
+파일이 업로드 되는 동안 단말이 병렬적으로 API 서버에 갱신 요청을 보냄 (파일 이름, 크기, 포맷  등)
+
+* (?)
+** 크기, 파일 이름, 포맷: 원본 저장소에서 알 수 있지 않은지?
+** 비디오 URL: 단말에서 보내는게 맞는지?
+
+=== 비디오 스트리밍 절차
+* streaming protocol
+** MPEG-DASH (Moving Picture Experts Group - Dynamic Adaptive Streaming over HTTP)
+** Apple HLS (HTTP Live Streaming)
+** Microsoft Smmoth Streaming
+** Adboe HTTP Dynamic Streaming
+
+단말에 가장 가까운 CDN edge server 가 비디오 전송 담당 = latency 낮음
+
+== 상세 설계
+
+=== 비디오 트랜스코딩
+
+* raw video 는 공간을 많이 차지
+* 단말, 브라우저는 특정 종류의 비디오 포맷만 지원
+* 네트워크 대역폭에 따라 비디오 품질 설정, 모바일 네트워크 상황에 따른 화질 자동/수동 변경
+* 인코딩 포맷
+** container: 비디오 파일, 오디오, 메타데이터를 담는 것. `.avi, .mov, .mp4, ...`
+** codec: 비디오 화질은 보존하면서 파일 크기 축소를 위한 압축 및 압축 해제 알고리즘. `H.264, VP9, HEVC`
+
+=== 유향 비순환 그래프 (DAG: Directed Acyclic Graph) (260p 그림)
+
+여러 작업을 단계별로 배열. 순차 or 병렬적으로 실행될 수 있도록 함
+
+* inspection: 품질 및 손상 확인
+* video encoding: 다양한 해상도, 코덱, 비트레이트 조합으로 인코딩
+* thumbnail, watermark.
+
+=== 비디오 트랜스코딩 아키텍처
+
++---------------------------------> 임시 저장소 +
+| +
+전처리기 -> DAG 스케줄러 -> 자원 관리자 -> 작업 실행 서버 -> 인코딩된 비디오
+
+==== 전처리기
+. video splitting: GOP (Group of Pictures) 단위로 쪼갬 (해당 단위 독립적으로 재생 가능)
+. DAG 생성: 설정 파일에 따라 DAG 생성
+. 데이터 캐시: GOP 와 메타데이터를 임시 저장소에 보관 (인코딩 실패 시 재개에 사용)
+
+.DAG 설정 예시
+[code]
+----
+
+task {
+    name ' download-input'
+    type 'Download'
+    input {
+        uri config.url
+    }
+    output { it->
+        context.inputVideo = it.file
+    }
+    next 'transcode'
+}
+
+----
+
+==== DAG 스케줄러 (263p)
+DAG 그래프를 몇 개의 stage 로 분할한 다음 각각의 자원 관리자의 task queue 에 넣음
+
+==== 자원 관리자 (resource manager)
+자원 배분을 효과적으로 수행. n 개의 queue, task scheduler
+
+* task queue, worker queue, running queue, task scheduler
+** (?) 실행 큐는 큐일 필요가 있나? 나중에 들어온 작업이 먼저 끝났으면 앞에꺼가 빠지기 전에 계속 대기 상태일 것 같은데
+
+==== 작업 서버
+DAG 에 정의된 작업 수행. 작업 종류별 구분
+
+==== 임시 저장소
+메타데이터 - 메모리, 비디오/오디오 데이터 - BLOB 저장소
+
+==== 인코딩된 비디오
+최종 결과물
+
+=== 시스템 최적화
+
+==== 속도 - 병렬 업로드
+단말 단에서 분할한 GOP 를 병렬로 업로드
+
+==== 속도 - 업로드 센터를 사용자 근거리에 지정
+
+==== 속도 - 모든 절차를 병렬화
+loosely couple 하게 만들어서 병렬성을 높임
+
+각 단계 간에 메시지 큐를 도입
+
+* 도입 전: 수행 시 이전 단계를 기다려야 함
+* 도입 후: 큐에 보관된 이벤트를 병렬적으로 처리
+
+==== 안정성 - 미리 사인된 업로드 URL
+authorized 사용자를 보장하기 위해 pre-signed upload URL 이용
+
+. HTTP 서버 요청: pre-signed (아마존 용어) URL 받기 위해 요청
+. API server: pre-signed URL 제공
+. 해당 URL 의 위치에 비디오 업로드
+
+==== 안정성 - 비디오 보호
+* DRM (Diginal Rights Management) 시스템 도입
+** FairPlay (Apple), Widevine (Google), PlayReady (Microsoft)
+* AES encryption: 암호화된 비디오를 재생 시에만 복호화. 허락된 사용자만 비디오 시청 가능
+* watermark
+
+==== 비용 최적화
+. 인기 비디오는 CDN, 나머지는 비디오 서버로 재생
+. 인기없는 비디오는 인코딩 할 필요가 없을 수 있음 (짧은 경우 필요할 때 인코딩하여 재생)
+. 특정 지역에서만 인기있는 경우 다른 지역으로 옮기지 않음
+. CDN 을 직접 구축하고 ISP 와 제휴
+
+=== 오류 처리
+회복 가능 오류, 회복 불가능 오류 존재 +
+앞서 나온 모든 유형이 장애가 될 수 있음
+
+* 업로드, 비디오 분할, 트랜스코딩, 전처리, DAG 스케줄러, 자원 관리자 큐, 작업 서버, API 서버, 메타데이터 캐시, 메타데이터 디비
