@@ -35,6 +35,9 @@
 - Design Patterns: Elements of Reusable Object-Oriented Software
 - pdf: https://w3sdesign.com/GoF_Design_Patterns_Reference0100.pdf
 
+### Enterprise Integration Patterns
+- https://www.enterpriseintegrationpatterns.com/
+
 ---
 
 ## Subject pool
