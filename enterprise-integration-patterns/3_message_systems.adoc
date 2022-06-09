@@ -1,0 +1,38 @@
+== 3. 메시징 시스템
+
+=== 기본 개념
+
+* Channel
+** 수신자 - 발신자를 연결하는 가상 파이프라인 Message Channel 을 거쳐 데이터를 전송
+** 애플리케이션은 통신 방식을 결정하고 이용할 채널을 생성해야 함
+* Message
+** Channel 을 거쳐 전송되는 데이터의 atomic 패킷
+* Pipe and Filter
+** 처리 단계들과 채널을 함께 엮을 수 있는 방법을 설명
+** (발신, 수신 전에 메시지에 검증, 변환 등의 행동을 취함)
+* Routing
+** (최종 수신자까지의 채널 경로를 모를 수 있기 때문에) 발신자가 Message Router 에 대신 전송
+** 채널 토폴로지를 탐색해 최종 수신자에게 메시지를 전송하거나, 다음 라우터에 메시지 전송
+* Transformation
+** 서로 다른 애플리케이션의 데이터 포맷을 처리하는 중간 필터
+* Endpoint
+** 애플리케이션과 메시징 시스템의 작동 방법을 모두 아는 코드 계층
+
+.루트 패턴과 각 장의 관계
+image::https://www.enterpriseintegrationpatterns.com/img/PatternHierarchy.gif[]
+
+=== Message Channel
+
+.Message Channel 도형
+image::https://www.enterpriseintegrationpatterns.com/img/ChannelIcon.gif[]
+
+* Sender: 정보를 특정 메시지 채널로 보냄
+* Receiver: 특정 메시지 채널의 정보만 받음
+* Channel 은 메시징 시스템의 논리 주소이다
+** 필요한 Channel 을 협의해 결정하고, 메시징 시스템에 추가해야 함
+** 메모리, 디스크 등의 한계가 있으므로 필요한 규모에 맞는 계획을 세워야 함
+** 종류
+*** Point to Point, Publish-Subsribe
+** Datatype Channels, Selective Consumer, ...
+* 메시징을 사용해야 하지만 권한이 없는 경우는 채널 어댑터로 연결
+* 잘 만든 채널의 집합은 애플리케이션 그룹 전체를 위한 메시지 버스를 형성
