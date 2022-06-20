@@ -1,0 +1,119 @@
+== 4. 메시징 채널
+
+발신/수신할 데이터가 있는 경우 사용하는데, 어떤 채널을 어떤 용도로 사용할까?
+
+=== Message Channel Themes (논제)
+
+* Fixed set of channels (고정된 채널)
+** 데이터의 형식과 통신 경로가 설계 과정에서 결정
+** 런타임에서 동적으로 경로를 생성하거나 사용할 수 없음
+* Determining the set of channels (채널의 결정)
+.. 애플리케이션 - 채널 결정, 메시징 시스템 - 채널 제공
+.. 애플리케이션이 채널을 사용하여 통신 설계
+.. 기존 채널로 설계가 어려운 경우 채널 신규 추가
+* Undirectional channels (단방향 채널): 메시지의 이동 방향은 단방향
+
+=== Message Channel Decisions
+
+* One-to-one or one-to-many
+** point-to-point, publish-subscibe
+* What type of data (데이터 형식)
+** 메시지 내용은 수신자가 이해할 수 있는 데이터 구조의 형식이어야 한다
+* Invalid and dead messages
+** 메시지 시스템은 메시지의 전달 보장, 수신자가 무엇을 할지는 보장하지 않음
+** 수신자의 기대와 다르다면 이상한 메시지를 Invalid message channel 에 넣음
+** 발신은 됐지만 전달에 실패한 메시지를 위해 Dead Letter Channel 이 있음
+* Crash proof (다운 방지)
+** Guanranteed Delivery: 메시지를 디스크에 저장하여 보장
+* Non-messaging client
+** 다른 네트워크 연결 방법을 사용하는 Channel Adapter 를 이용하여 연결
+** Messaging Bridge: 두 메시징 시스템 모두의 클라이언트가 되는 애플리케이션
+* Communication backbone
+** 메시징 시스템이 Message Bus 가 된다 - 끊임없이 변화하는 애플리케이션들 및 기능에 접속하는 도구
+
+=== Point-to-Point Channel
+
+.Point-to-Point Channel 도형
+image::https://www.enterpriseintegrationpatterns.com/img/PointToPointIcon.gif[]
+
+.하나의 수신자가 특정 메시지를 수신할 수 있게 메시지 전송
+image::https://www.enterpriseintegrationpatterns.com/img/PointToPointSolution.gif[]
+
+* 단일 채널에 여러 수신자를 연결하면서도 반드시 한 수신자가 하나의 특정 메시지를 소비하기 한다
+* 여러 consumer 가 있는 경우 competing consumer 가 되는데 이 채널로 1 consumer - 1 message 가 되게 함
+** kafka partition 개념인듯?
+* 메시지를 여러 consumer 로 균형적으로 분산시킬 수 있으므로 확장성 향상
+
+=== Publish-Subscribe Channel
+
+.Publish-Subscribe Channel 도형
+image::https://www.enterpriseintegrationpatterns.com/img/PublishSubscribeIcon.gif[]
+
+Observer pattern 의 적용
+
+* 하나의 입력 채널을 여러 출력 채널로 분할, 각 출력 채널에 메시지 사본 전달
+* 디버깅에 용이 - 모든 트래픽 모니터링
+** 모든 활성 채널들에서 메시지를 수신해 파일로 기록 - 메시지 저장소
+* 보안: 메시지 도청 문제 (의도하지 않은 클라이언트의 구독)
+** 구독은 보안 정책에 따라 제한되어야 한다
+
+=== Datatype Channel
+
+.Datatype Channel 도형
+image::https://www.enterpriseintegrationpatterns.com/img/DatatypeChannelIcon.gif[]
+
+*요약: 그냥 용도마다 데이터 형식이 다르면 개별 채널로 만들어라*
+
+수신자는 메시지 내용의 type (data structure 와 format) 을 알아야 한다
+
+* 발신자가 header 에 flag (Format Indicator) 를 넣으면 -> 수신자가 case 문을 사용해 해석
+* 발신자가 데이터 형식마다 별도의 Command message 로 데이터를 감싸면 -> 발신자가 수신자의 행동을 데이터를 발신할 때 미리 결정
+* 채널 내 메시지는 모두 같은 형식이어야 한다
+* 포맷이 달라야 할 경우 Format Indicator 를 사용한다
+* 데이터 형식을 묶어 하나의 채널을 공유할 수 있는 Selective Consumer 사용 (multiplex)
+* 메시지 게시자가 하나의 채널로 모든 메시지를 전송하는 경우
+** 메시지 형식에 따라 분리 (demultiplex) 할 수 있는 Content-based router 를 사용할 수 있음
+* Message Dispatcher: 분류되지 않은 메시지들을 분류하고 메시지 형식에 맞는 처리를 요청하게 하는 용도로 사용될 수 있음
+
+=== Invalid Message Channel
+
+.Invalid Message Channel 도형
+image::https://www.enterpriseintegrationpatterns.com/img/InvalidMessageChannelIcon.gif[]
+
+* 메시지 본문에 구문, 문법, 유효성 오류 + 메시지 헤더에 필요한 속성 누락, 해석할 수 없는 속성 등
+
+.Invalid Message Channel 처리 흐름
+image::https://www.enterpriseintegrationpatterns.com/img/InvalidMessageSolution.gif[]
+
+* 수신자가 Invalid message 를 발견 -> Invalid Message Channel 로 옮김
+* 메시징 시스템 설계 시 관리자는 애플리케이션을 위해 하나 이상의 Invalid Message Channel 을 정의해야 함 (책에서는 이런데 실제로는 거의 없는 듯)
+* 수신자의 상황과 기대가 유효 여부를 결정한다
+** 한 수신자에게 유효/무효한 메시지는 다른 모든 수신자에게도 유효/무효해야 한다 (근데 이건 안될듯)
+* 채널의 메시지들에 대해 확인하고 분석해야 한다 - 발생할 때마다 시스템 관리자에게 알림을 전송하는 프로세스
+
+=== Dead Letter Channel
+
+.Dead Letter Channel 도형
+image::https://www.enterpriseintegrationpatterns.com/img/DeadLetterChannelIcon.gif[]
+
+* 메시징 시스템이 메시지를 수신자 애플리케이션에 전달할 수 없는 경우?
+** 메시지 채널 설정 오류, 메시지 채널 삭제, 메시지 만료, Selective consumer killed
+
+.Dead Letter Channel 처리 흐름
+image::https://www.enterpriseintegrationpatterns.com/img/DeadLetterChannelSolution.gif[]
+
+* dead letter 를 메시징 시스템이 dead lettter channel 로 바로 이동
+* Dead letter message: 메시징 시스템이 성공적으로 전달할 수 없는 메시지
+** 메시지 헤더를 평가해 메시지의 Dead letter channel 이동 여부를 결정
+** 메시징 시스템이 dead letter 의 결정과 처리를 자동으로 수행
+** 메시징 시스템이 제공하는 dead letter 처리에 의존
+* Invalid message: 제대로 전달됐지만 수신자가 처리할 수 없는 메시지
+** 메시지 본문이나 특정 헤더 필드를 평가해 Invalid message channel 이동 여부 결정
+** 수신자가 스스로 처리
+** 죽은 것 같은 메시지와 invalid 메시지는 개발자가 직접 처리
+
+여기서 의문?
+
+* spring (integration, cloud stream) 에서 제공하는건 명칭은 DLQ 긴 하지만 Invalid Message 개념으로 보이긴 한다
+** document 를 봐도 Invalid 에 대한 개념은 없음
+* https://en.wikipedia.org/wiki/Dead_letter_queue[위키피디아]의 제일 마지막에 `Message is not processed successfully.` 이런 내용이 있긴 하다
