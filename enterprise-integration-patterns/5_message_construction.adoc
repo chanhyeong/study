@@ -1,0 +1,15 @@
+== 5. 메시지 생성
+
+* 메시지 의도
+** Command Message, Document Message, Event Message
+* 응답 반환
+** Request (Command Message), Reply (Document Message)
+** Return Address, Correlation Identifier
+** Request-Reply, Messaging RPC, Messaging Query
+* 대량 데이터
+** 큰 데이터를 분할하여 Message Sequence 로 전송 - 수신자가 원래 데이터로 재구성
+* 느린 메시지
+** 전달이 느려 수신하지 않은 메시지 - Message Expiration, Dead Letter Channel
+
+=== Command Message
+
