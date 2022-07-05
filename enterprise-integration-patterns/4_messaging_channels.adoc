@@ -117,3 +117,50 @@ image::https://www.enterpriseintegrationpatterns.com/img/DeadLetterChannelSoluti
 * spring (integration, cloud stream) 에서 제공하는건 명칭은 DLQ 긴 하지만 Invalid Message 개념으로 보이긴 한다
 ** document 를 봐도 Invalid 에 대한 개념은 없음
 * https://en.wikipedia.org/wiki/Dead_letter_queue[위키피디아]의 제일 마지막에 `Message is not processed successfully.` 이런 내용이 있긴 하다
+
+=== Guaranteed Delivery
+
+.Guaranteed Delivery 도형
+image::https://www.enterpriseintegrationpatterns.com/img/GuaranteedMessagingIcon.gif[]
+
+메시징 시스템이 중단된 경우에도 메시지가 손실되지 않게 메시지를 영속화
+
+.예시 그림
+image::https://www.enterpriseintegrationpatterns.com/img/GuaranteedMessagingSolution.gif[]
+
+* 메시지를 유지하기 위해 로컬 데이터 저장소 사용
+* 신뢰성을 증가시키지만 성능 감소
+** 메시지가 손실되도 된다면 Guaranteed Delivery 를 사용하지 않는 것이 좋다
+* 테스트와 디버깅 단계에서는 보장 전송을 해제하는 것이 좋다 (큐에 들어가면 디버깅이 어려움)
+
+=== Channel Adapter
+
+.Channel Adapter 도형
+image::https://www.enterpriseintegrationpatterns.com/img/ChannelAdapterIcon.gif[]
+
+* 메시징 시스템의 메시징 클라이언트
+** 애플리케이션 기능을 호출
+** 애플리케이션으로부터 이벤트를 수신해 메시징 시스템을 호출
+* 여러 layer 에 연결될 수 있다
+. User interface adapter
+** 진짜 사용자 단 입력 해석
+. Business logic adapter
+** 안정적이고 효율적인 API 를 사용
+. Database adapter
+** RDB 에서 직접 정보 추출
+** 단점 - 어댑터가 애플리케이션 내부로 너무 깊숙히 파고든다
+* 메시지 -> 애플리케이션 기능으로 변환할 수 있지만, 종속된다
+** 이거는 Message Translator (3장) 과 결합
+* 기타 특징
+** 별도의 컴퓨터에서 동작 - 프로토콜이 메시징 채널이 보장하는 전송 서비스 품질을 제공하지는 못함 (실패할 수 있음을 인지해야 함)
+** 단방향적
+* Design-Time Adapter (kind of Metadata Adapter)
+** 애플리케이션 기능은 호출하지 않고 애플리케이션의 데이터 포맷을 설명하는 메타데이터만 추출
+** 메타데이터 - Translator 구성이나 포맷 변경을 감지하는데 사용
+
+kafka connect 가 이런거 일듯
+
+=== Messaging Bridge
+
+.Messaging Bridge 도형
+image::https://www.enterpriseintegrationpatterns.com/img/MessagingBridgeIcon.gif[]
