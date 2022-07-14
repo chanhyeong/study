@@ -13,3 +13,122 @@
 
 === Command Message
 
+.Command Message 도형
+image::https://www.enterpriseintegrationpatterns.com/img/CommandMessageIcon.gif[]
+
+* Command parttern: 요청을 저장과 전달이 가능한 객체로 변경하는 방법
+** 객채가 메시지라면 Message channel 저장 -> 채널을 거쳐 전달될 수 있음
+
+[quote,]
+----
+다른 프로시저를 안정적으로 호출하려면 Command Message 를 사용한다
+----
+
+* 특별한 형식이 있는게 아닌 명령을 포함한 일반 메시지
+* 일반적으로 Point-to-Point channel 을 거쳐 전송 (한 번만 소비 및 실행)
+
+=== Document Message
+
+.Document Message 도형
+image::https://www.enterpriseintegrationpatterns.com/img/DocumentMessageIcon.gif[]
+
+[quote,]
+----
+애플리케이션들 사이에 데이터를 안정적으로 전송하려면 Document Message 를 사용한다
+----
+
+* 발신자는 데이터를 전달만 하고 수신자가 데이터를 어떻게 할지 결정
+* Guaranteed Delivery 는 고려하지만 Message Expiration 은 덜 고려한다
+* 보통 Point-to-Point channel 을 거쳐 중복 없이 프로세스에서 프로세스로 이동
+
+=== Event Message
+
+.Event Message 도형
+image::https://www.enterpriseintegrationpatterns.com/img/EventMessageIcon.gif[]
+
+메시지를 사용해 비동기적으로 이벤트 알림 전송 +
+subject (발신자) 는 준비됐을 때 발신, observer (감시자) 도 준비됐을 때 수신
+
+[quote,]
+----
+애플리케이션들은 신뢰할 수 있는 비동기 이벤트 알림을 위해 Event Message 를 사용한다
+----
+
+* subject: 이벤트 객체를 생성 -> 메시지로 감싸고 -> 채널로 발신
+* observer: 메시지 수신 -> 이벤트 추출 -> 처리
+* Document Message 와의 구분? - 시기와 내용
+** Event: 본문은 비어있고 사건의 발생만을 감시자에게 알림. 시기는 중요 (빈번하게 발생, 신속하게 전달)
+*** Guaranteed Delivery 는 도움되지 않고 Message Expiration 은 처리 여부를 결정하는데 중요한 역할
+* 예시) 상품 가격 변경을 알리는 메시지
+** 그냥 보내면 Event
+** 가격을 포함하면 Document 를 포함한 Event
+* observer pattern
+** Push model
+*** 메시지 = 문서 + 이벤트
+*** 메시지 전달 = 상태가 발생했음을 알림, 새 상태가 담김
+*** 상세 정보를 원하는 경우 효율, 원하지 않는 경우 최악
+** Pull model
+*** 갱신 = observer 에게 이벤트를 알려주는 이벤트 메시지
+*** 상태 요청 = observer 가 subject 에 세부 내용을 요청하는 데 사용하는 Command Message
+*** 상태 응답 = subject 가 observer 에게 세부 정보를 전송할 때 사용하는 Document message
+* 일반적으로 publish-subscribe channel 을 거쳐 브로드캐스팅
+* 수신자가 처리하기 너무 바쁘면 무시될 수 있다
+
+=== Request-Reply
+
+.Request-Reply 도형
+image::https://www.enterpriseintegrationpatterns.com/img/RequestReplyIcon.gif[]
+
+메시징 사용 시 양방향이 필요한 경우
+
+[quote,]
+----
+Request Message - Request Channel, Reply Message - Reply Channel
+----
+
+* Requestor, Replier
+* Request Channel 은 point-to-point or publish-subscribe 둘 다 가능
+** 단일 or 모든 소비자
+* Reply Channel 은 point-to-point
+* Requestor 는 응답 대기 시 두 가지 방법을 사용할 수 있다
+.. sync pending (중지인데 영단어를 뭘로 썼을지)
+*** 단일 thread 에서 보내고 중지 -> 수신되면 처리
+.. async callback
+*** callback 을 설정하고 별도 thread 가 reply message 수신
+* 메시지가 무엇을 대표하는가? 3가지
+.. Message RPC: 메시지를 사용한 RPC 구현
+*** Request: Replier 가 호출해야 할 함수를 설명하는 Command Message
+*** Reply: 함수의 반환 값이나 예외를 포함하는 Document Message
+.. Messaging Query
+*** Request: query 를 포함하는 Command Message
+*** Reply: 아마 Message Sequence 를 가진 query results
+.. 통지/수신 확인
+*** Request: 통지를 제공하는 Event Message
+*** Reply: 수신을 확인하는 Document Message
+*** 수신 확인: 이벤트에 대한 세부 사항을 요구하는 또 다른 요청일 수 있음
+* Request = method call, Reply = ?
+.. void
+.. result value
+.. exception
+* Request 는 return address (Reply 위치) 를 포함
+* Reply 는 correlation identifier (어느 요청의 응답인지 식별)
+
+=== Return Address
+
+.Return Address 도형
+image::https://www.enterpriseintegrationpatterns.com/img/ReturnAddressIcon.gif[]
+
+Reply channel 이 Reply 를 반드시 Requestor 에게 다시 전송할 필요는 없다. +
+Reply 가 전송되면 아무 수신자가 수신하면 된다
+
+[quote,]
+----
+Request Message 는 Reply Message 의 전송 태널을 나타내는 Return Address 를 포함한다
+----
+
+.Return Address 전달과 이후 흐름
+image::https://www.enterpriseintegrationpatterns.com/img/ReturnAddressSolution.gif[]
+
+* Replier 는 Requestor 에서 Reply channel 의 주소를 얻을 수 있다
+* Requestor 안에 Reply 를 위한 채널 지식을 캡슐화. Replier 를 하드코딩하지 않게 함
+* 데이터가 아니므로 헤더에 삽입
