@@ -164,3 +164,37 @@ kafka connect 가 이런거 일듯
 
 .Messaging Bridge 도형
 image::https://www.enterpriseintegrationpatterns.com/img/MessagingBridgeIcon.gif[]
+
+.예시
+image::https://www.enterpriseintegrationpatterns.com/img/MessagingBridge.gif[]
+
+* 기능
+** 두 메시징 시스템을 연결
+** 한 채널에서 다른 채널로 매핑
+** 메시지를 한 시스템 포맷에서 다른 시스템 포맷으로 변환
+* 두 메시징 시스템 모두에 대한 메시지 엔드포인트
+* 필요한 이유?
+** 메시징 시스템마다 메시지의 표현 방법과 저장소들 사이의 전달 방법이 독자적이기 때문
+
+=== Message Bus
+
+.Message Bus 도형
+image::https://www.enterpriseintegrationpatterns.com/img/MessageBusIcon.gif[]
+
+.애플리케이션들 사이를 연결하는 미들웨어에 Message Bus 를 사용 (애플리케이션들이 메시징을 거쳐 통신할 수 있게 함)
+image::https://www.enterpriseintegrationpatterns.com/img/MessageBusSolution.gif[]
+
+Message Bus = Canonical data model + Common command set + Messaging infra +
+공유 인터페이스를거쳐 시스템 사이 통신을 데공
+
+. 공통 통신 인프라
+** 애플리케이션의 플랫폼과 언어에 중립적인 범용 어댑터를 제공
+** Message router 로 정확하게 라우팅, Publish-Subscribe Channel 로 모둔 수신자에 메시지 전송 등
+. 어댑터
+** 메시지 버스와 인터페이스하는 방법 - Channel adapter, Service activator 등
+** CICS (?) 트랙잭션 호출 or 버스의 공통 데이터 구조를 애플리케이션의 데이터 구조로 변환
+*** Canonical data model 이 필요
+. 공통 명령 구조
+** 모든 참가자가 이해할 수 있는 공통 명령이 있어야 함
+** Command Message 를 사용 or Datatype channel
+** Message router 가 특정 메시지를 특정 엔드포인트로 라우팅
