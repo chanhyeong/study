@@ -1,0 +1,90 @@
+= 3. 카프카의 기본 개념과 구조
+
+== 기초
+
+=== Replication
+
+메시지를 여러 개로 복제하여 카프카 클러스터에 분산 `replication-factor`
+
+* replication factor 가 크면 안정성 높음, 리소스 사용
+* 오버헤드를 줄여서 사용
+** 개발: 1
+** 운영: 2 (로그성, 유실 허용) or 3 (유실 허용하지 않음)
+*** 3대 기준이고 실제 브로커 대수에 따라 다를 수 있음
+
+=== Partition
+
+하나의 토픽이 처리할 수 있는 한계를 높이기 위해 병렬 처리가 가능하게 나눈 것
+
+* 생성 수? (한 번 늘리면 줄일 수 없다)
+** 작게 생성 한 후, 처리량이나 lag 등을 모니터링하며 늘려가기
+
+=== Segment
+
+메시지가 로그 파일 형태로 브로커의 로컬 디스크에 저장되는 형태
+
+== 핵심 개념
+
+=== 분산 시스템
+
+확장 가능
+
+=== Page Cache
+
+직접 Disk I/O 대신 OS 단에서 제공하는 잔여 Memory 이용
+
+=== 배치 전송 처리
+
+단 건 대신 모아서 전송 처리
+
+=== 압축 전송
+
+gzip, snappy, lz4, zstd, ...
+
+* 네트워크 대역폭, 회선 비용 감소
+* 높은 압축 - gzip, zstd
+* 빠른 속도 - lz4, snappy
+
+=== topic, partition, offset
+
+* offset 을 이용하여 메시지의 순서를 보장, consumer 의 마지막 읽은 위치 파악
+
+=== 고가용성 보장
+
+Replication 내용과 동일
+
+* leader, follower
+
+=== Zookeeper 의존성
+
+* 분산 애플리케이션 코디네이터
+* znode 를 이용해 메타 정보 기록
+** 노드, 토픽, 컨트롤러 관리 등
+
+== Producer 기본 동작 및 예제
+
+=== Producer design
+
+* ProducerRecord: 전송할 데이터
+** topic, partition, key, value 로 구성
+* partition 지정 시?
+** 아무 동작을 하지 않고 레코드 전달
+* partition 미지정 시?
+** key 를 가지고 파티션 선택 - 기본은 round robin
+* 레코드를 파티션 별로 잠시 모아둠 - 배치 전송
+
+=== 주요 옵션
+
+.주요 프로듀서 옵션
+[cols="1,4"]
+|===
+|옵션 |설명
+
+|bootstrap.servers
+|처음 연결하기 위한 host:port 정보
+
+|client.dns.lookup
+|하나의 IP 와 연결하지 못할 경우 다른 IP 로 시도 설정 +
+디폴트 ùse_all_dns_ips
+
+|===
