@@ -76,7 +76,7 @@ Replication 내용과 동일
 === 주요 옵션
 
 .주요 프로듀서 옵션
-[cols="1,4"]
+[cols="2,4"]
 |===
 |옵션 |설명
 
@@ -85,6 +85,96 @@ Replication 내용과 동일
 
 |client.dns.lookup
 |하나의 IP 와 연결하지 못할 경우 다른 IP 로 시도 설정 +
-디폴트 ùse_all_dns_ips
+디폴트 use_all_dns_ips
+
+|acks
+|리더 측에 메시지 전송 후 요청을 완료하는 기준 +
+0 (빠름), 1 (리더가 받았는지 확인), all (leader, follower 전부 받았는지 확인)
+
+|buffer.memory
+|설정한만큼 차면 보냄
+
+|compression.type
+|압축 타입
+
+|enable.idempotence
+|중복 없는 전송, `max.in.flight.requests.per.connection` 5 이하, `retries` 0 이상, `acks` all
+
+|max.in.flights.requests.per.connection
+|하나의 커넥션에서 ack 없이 전송할 수 있는 요청 수. 순서가 중요하면 1 설정
+
+|retries
+|오류 시 재시도 횟수
+
+|batch.size
+|동일 파티션에 배치로 몇 개 보낼 것인지
+
+|linger.ms
+|설정한만큼 대기하면 보냄
+
+|transactional.id
+|exactly once 전송을 위한 옵션, TransactionalId 에 한해 exactly once 보장
 
 |===
+
+== Consumer 기본 동작 및 예제
+
+=== 기본 동작
+
+* 컨슈머 그룹: 하나 이상의 컨슈머들이 모여있는 그룹, 컨슈머는 반드시 속함
+* 각 파티션의 리더에게 토픽에 저장된 메시지를 가져오기 위한 요청을 보냄
+* partition:consumer = 1:1 이 이상적
+
+=== 주요 옵션
+
+.컨슈머 주요 옵션
+[cols="2,4"]
+|===
+|옵션 |설명
+
+|bootstrap.servers
+|처음 연결하기 위한 host:port 정보
+
+|fetch.min.bytes
+|한 번에 가져올 수 있는 최소 데이터 크기 +
+작으면 안가져오고 기다림
+
+|group.id
+|컨슈머 그룹을 식별하는 식별자
+
+|heartbeat.interval.ms
+|컨슈머가 active 한지 체크. session.timeout.ms 의 1/3 값을 설정
+
+|max.partition.fetch.bytes
+|파티션 당 가져올 수 있는 최대 크기
+
+|enable.auto.commit
+|주기적으로 오프셋 커밋
+
+|auto.offset.rest
+|초기 오프셋이 없거나 현재 오프셋이 존재하지 않는 경우 리셋 설정 +
+earliest, latest, none (값을 못찾으면 에러)
+
+|fetch.max.bytes
+|가져올 수 있는 최대 크기
+
+|group.instance.id
+|컨슈머의 고유 식별자, 설정한 경우 static 멤버여서 불필요한 리밸런싱을 하지 않음
+
+|isolation.level
+|transaction consumer 에서 사용 + 
+read_uncommitted 는 모든 메시지, read_committed 는 transaction 이 완료된 메시지
+
+|max.poll.records
+|한 번의 poll() 에서 가져오는 메시지 수
+
+|partition.assignment.strategy
+|파티션 할당 전략, 기본은 range
+
+|fetch.max.wait.ms
+|요청에 대한 응답을 기다리는 최대 시간
+
+|===
+
+컨슈머 역시 한 번 구동하고 나면 자주 변경되거나 종료되는 현상이 없으므로 auto commit 을 사용하는 경우가 많습니다 +
+-> 안씀. 컨슈머는 언제든지 죽을 수 있다는 가정
