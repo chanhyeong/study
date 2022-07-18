@@ -27,7 +27,7 @@
 - Spring in Action 5th edition (2021/09 ~ 10)
 - Mastering Spring 5.0, ...
 
-### Cloud native patterns (2021/12 ~)
+### Cloud native patterns (2021/12 ~ suspend)
 - Cloud native patterns
 - pdf: https://livebook.manning.com/book/cloud-native
 
@@ -37,6 +37,10 @@
 
 ### Enterprise Integration Patterns
 - https://www.enterpriseintegrationpatterns.com/
+
+### Refactoring (2022/06 ~)
+- https://refactoring.com/
+- toc en: https://www.oreilly.com/library/view/refactoring-improving-the/0201485672/
 
 ---
 
