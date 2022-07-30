@@ -1,0 +1,108 @@
+= 5. 프로듀서의 내부 동작 원리와 구현
+
+send(): serializer -> partitioner -> kafka
+
+== Partitioner
+
+메시지를 보낼 때 어느 파티션으로 보낼지 결정하는데 사용
+
+* key 를 hash 처리하여 파티션을 구함 -> key 가 같으면 동일한 파티션으로 전송
+* 파티션 수가 늘어나면 다른 파티션으로 갈 수도 있음
+
+=== Round-Robin
+
+* key 를 지정하진 않은 경우 이용
+* 배치 처리를 위해 버퍼 메모리에 파티션 별로 나뉜 경우 비효율적일 수 있음
+
+=== Stickey Partitioning
+
+* 하나의 파티션에 레코드 수를 먼저 채워 빠르게 배치 전송하는 전략
+* 이것을 사용함으로 30% 이상 지연시간 감소, producer 의 cpu 사용률도 감소
+* 순서가 중요하지 않은 경우라면 적용 권장
+
+== Batch in Producer
+
+* 배치 전송을 위한 옵션
+** `buffer.memory`: 전송 전에 메시지를 담아주는 버퍼 메모리 크기 (default 32MB)
+** `batch.size`: 배치 전송 메시지 단위 (default 16KB)
+** `linger.ms`: 메모리에서 대기하는 최대 대기 시간 (default 0, 기다리지 않고 즉시 전송)
+* 전송 목표를 정하고 목적에 따라 옵션값을 조정
+* 높은 처리량을 목표로 하는 경우 - 버퍼 메모리 크기가 충분히 커야 함
+
+== Itempotent Delivery
+
+* at least once: 중복이 있을 수 있지만 최소 하나는 보장. 카프카의 기본 동작
+** 메시지 중복 가능성
+* at most once: 응답을 받지 못하더라도 최대 한 번만 전송 (재전송 없음)
+** 메시지 손실 가능성
+* idempotent delivery: 중복없는 전송 (162p)
+** 메시지 전송 시 *PID, 메시지 번호를 헤더에 포함*
+*** broker 에 snapshot 파일로 저장됨
+** 중복을 피하기 위해서는 오버헤드가 존재함 -> 카프카에선 최대 20% 성능 감소
+* 옵션
+** `enable.idempotence` = true
+** `max.in.flight.requests.per.connection` = 1~5
+** `acks` = all
+** `retries` > 0
+
+== Exactly-Once Delivery
+
+*중복 없는 전송이 정확히 한 번 전송하는다는 의미는 아님*
+
+* kafka 의 exactly-once 는 트랜잭션과 같은 전체적인 프로세스 처리, 중복 없는 전송은 포함되는 일부 기능
+
+=== Design
+
+* transaction coordinator - producer 에 의해 전송된 메시지 관리, 커밋 or 중단 등을 표시
+* `_transaction_state`: 트랜잭션 로그 저장
+** `transaction.state.log.num.partitions=50`
+** `transaction.state.log.replication.factor=3`
+** producer 가 아닌 coordinator 에 의해 기록됨
+* control message
+** client 에서 해당 메시지들이 정상적으로 커밋된 것인지 실패한 것인지를 식별할 수 있어야 함
+** broker - client 통신에서만 사용됨
+
+=== 코드 예시
+
+. 설정
+** 위의 설정 + `transactional.id``
+** 프로세스마다 unique 하게 설정해야 함
+. initTransactions()
+. beginTransaction()
+. abortTransaction()
+. commitTransaction()
+
+=== 단계별 동작
+
+Transaction API
+
+. FindCoordinatorRequest
+** Transaction coordinator 의 위치를 찾음
+** 없으면 새로 생성됨
+** transactional.id 를 hash 하여 `_transaction_state` 토픽의 어느 파티션에 들어갈지 결정
+. initTransactions()
+** InitPidRequest 를 coordinator 로 전송 (PID, TID)
+** PID, TID 를 매핑하고 로깅
+** PID epoch 를 올림 -> 이전 동일한 PID dp eogks dycjd antl
+. beginTransaction()
+** 새로운 transaction 을 알리고 기록 (producer 단에만 시작, coordinator 단에서는 아직 아님)
+. transaction 상태 추가
+** Producer -> Coordinator 로 토픽 파티션 정보를 전달
+** coordinator 는 로깅하고 현재 상태를 `Ongoing` 으로 표시
+*** 디폴트 1분 간 (타이머) 상태 업데이트가 없다면 실패로 처리
+. 메시지 전송
+** PID. epoch, sequence (message sequence) 가 함께 포함되어 전송
+. EndTxnRequest (commitTransaction(), abortTransaction())
+** transaction coordinator 에게 완료됨을 알림
+** 커밋 진행
+... PrepareCommit or PrepareAbort
+... WriteTxnMarkerRequest
+**** 사용자 토픽에 표시하는 단계 (기록된 토픽의 파티션에 커밋 표시 기록)
+**** 여기서 기록하는 메시지가 control message
+. 트랜잭션 완료
+** coordinator 가 Committed 를 로깅
+
+==== 컨슈머 단까지 예시
+
+* transaction commit 이 끝나지 않은 메시지는 컨슈머에게 반환하지 않음
+* 이걸 관리하기 위해 LSO offset 유지 (Last stable offset)
