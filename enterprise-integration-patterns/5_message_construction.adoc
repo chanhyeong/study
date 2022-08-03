@@ -132,3 +132,83 @@ image::https://www.enterpriseintegrationpatterns.com/img/ReturnAddressSolution.g
 * Replier 는 Requestor 에서 Reply channel 의 주소를 얻을 수 있다
 * Requestor 안에 Reply 를 위한 채널 지식을 캡슐화. Replier 를 하드코딩하지 않게 함
 * 데이터가 아니므로 헤더에 삽입
+
+=== Correlation Identifier
+
+.Correlation Identifier 도형
+image::https://www.enterpriseintegrationpatterns.com/img/CorrelationIdentifierIcon.gif[]
+
+Reply Message 에 대한 Unique Identifier
+
+==== 구성 6개
+
+* Requestor, Replier, Request, Reply
+* Request ID: 요청을 식별하는 토큰
+* Correlation ID: Request ID 와 같은 값. Response 에 포함된 토큰
+
+==== 상세
+
+* Request, Replier 는 Request ID 속성의 형식과 이름, Correlation ID 의 속성의 형식과 이름에 동의해야 함
+* Request ID != Correlation ID 인 경우
+** Requestor 는 Replier 가 Request ID -> Correlation ID 로 어떻게 변환하는지 알아야 함
+* 이 패턴은 Asynchronous Completion Token pattern (POSA2) 을 메시지 특화로 간단하게 만든 버전
+* Correlation ID (Request ID) 는 헤더에 들어감
+
+==== Request-Reply chain
+
+* Request, Reply message 가 서로 연결이 가능해진다
+* -> Request 는 Reply 를 초래하고, Reply 는 또 다른 Reply 를 초래, ...
+
+=== Message Sequence
+
+.Message Sequence 도형
+image::https://www.enterpriseintegrationpatterns.com/img/MessageSequenceIcon.gif[]
+
+큰 데이터를 보내야 하는데 크기 제약이 있어서 쪼갬 -> 순서가 중요 +
+(이래서 spring-kafka 에 batch listener 가 있구나)
+
+==== 순서 식별 필드 (sequence idendification fields)
+
+.Message Sequence 예시
+image::https://www.enterpriseintegrationpatterns.com/img/MessageSequenceSize.gif[]
+
+. Sequence: 메시지 순서 구별
+. Position: 메시지 순서 안에서 각 메시지를 고유하게 식별, 순서대로 정리
+. Size (or end): 메시지 순서의 총 메시지 수를 지정 or 메시지 무리에서 마지막 메시지 표시
+** end 일 때는 false, true 로 설정 (true 는 데이터 스트림의 마지막이다는 표시)
+
+==== 상세
+
+* 메시지가 하나이더라도 Message Sequence 의 일부로 전송해야 한다
+* Message Sequence 의 모든 메시지 수신에 실패하면, 메시지들은 Invalid Message Channel 로 다시 라우팅한다
+* Message Sequence send/receive 에 transaction client (10장) 를 사용할 수 있다
+* Competing consumer 나 Message dispatcher 와는 호환되지 않는 경향
+** 단일 채널, 단일 소비자로 순차적으로 전송되어야 함
+* 대안은 Claim Check 이용
+
+=== Message Expiration
+
+.Message Expiration 도형
+image::https://www.enterpriseintegrationpatterns.com/img/MessageExpirationIcon.gif[]
+
+시간 안에 수신하지 못한 메시지에 대해 발신자가 메시지의 수명을 지정한다
+
+.Message Expiration 흐름
+image::https://www.enterpriseintegrationpatterns.com/img/MessageExpirationSolution.gif[]
+
+* consumer 가 만료된 메시지 무시
+* 메시징 시스템: Dead Letter Channel 로 rerouting 하거나 삭제
+* 수신자: Invalid Channel 로 이동시켜야 함
+* 메시지의 유효 기간을 지정하는 timestamp - absolute or relative time
+* 메시지 발신 시간 < 만료 시간 이어야 한다
+
+=== Format Indicator
+
+변경을 고려한 메시지 데이터 포맷 설계
+
+* Format Indicator 는 메시지의 사용 포맷을 지정한다
+. Version: 포맷을 식별하는 고유 숫자나 문자열
+. Foreign Key: 포맷 설명 문서를 지정하는 고유 아이디 - 공용 저장소에 있는 데이터 포맷 설명
+. Format Document: 데이터 포맷을 설명하는 스키마
+** 1, 2 로 스키마를 유추하는 것이 아닌 메시지 자체에 포함
+** 포맷 정보가 포함되어 메시지 트래픽이 증가한다
