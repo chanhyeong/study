@@ -1,0 +1,92 @@
+= 6. 컨슈머의 내부 동작 원리와 구현
+
+== Consumer Offset management
+
+* `__consumer_offsets` 토픽에 consumer group 별 offset 위치 정보가 기록됨
+** consumer 들은 지정된 토픽의 메시지를 읽은 뒤, 읽어온 위치의 offset 정보를 기록
+** consumer group, topic, partition 등의 내용을 통합
+* `offsets.topic.num.partitions`, `offsets.topic.replication.factor`
+
+== Group Coordinator
+
+* 안정적인 consumer group 관리를 위한 coordinator
+** Consumer Rebalancing: consumer 들에게 균등하게 분배하는 동작
+* consumer group 이 구독한 topic, partition 들과 그룹의 멤버들을 트래킹
+* Group Coordinator 는 각 consumer group 별로 존재 - 카프카 클러스터 내의 브로커 중 하나에 위치
+
+=== Group Coordinator 와 consumer 의 상호작용 과정
+
+185p
+
+. (컨슈머) 브로커와 연결하기 위한 요청
+. (브로커) Group Coordinator 를 생성하고 컨슈머에 응답
+. Group Coordinator 는 `group.initial.rebalance.delay.ms` 만큼 컨슈머 요청 기다림
+. (컨슈머) 컨슈머 등록 요청 전송 - 가장 먼저 보내는게 컨슈머 그룹의 리더
+. (리더 컨슈머) 정해진 정책에 따라 파티션 할당 -> Group Coordinator 에게 전달
+. (컨슈머) 지정된 토픽 파티션으로부터 메시지 가져옴
+
+=== Consumer HealthCheck
+
+* consumer group 은 Group Coordinator 와 연결되어 관리됨
+** join, leave 요청 ...
+** heartbeat
+* 옵션
+** `heartbeat.interval.ms` (3000) - consumer group 에 대한 시간
+** `session.timeout.ms` (10000) - consumer - broker 간 연결에 대한 시간
+** `max.poll.interval.ms` (300000)
+
+== Static Membership
+
+* 불필요한 리밸런싱을 방어하기 위해 kafka 2.3 버전부터 도입된 개념
+* 컨슈머가 재시작 등으로 그룹에서 나갔다 다시 합류하더라도 리밸런싱이 일어나지 않음 - 컨슈머마다 인식할 수 있는 ID 부여
+* `group.instance.id` 적용 - 컨슈머마다 고유하게
+* 적용 시 `session.timeout.ms` 를 조금 더 크게 설정해야 함 - 강제 리밸런싱
+** 재시작 시간에 따라 다르게 적용
+
+== Consumer partition assign strategy
+
+`partition.assignment.strategy`
+
+=== RangeAssignor (default)
+
+* 토픽에 대한 파티션을 순서대로 나열한 후 컨슈머를 순서대로 정렬
+* 하나의 consumer group 이 동일한 파티션 수를 가진 2개 이상의 토픽을 컨슘할 때 유용
+
+=== RoundRobinAssignor
+
+* 모든 파티션과 컨슈머를 나열하여 round robin 으로 하나씩 할당
+
+=== StickyAssignor
+
+* 재할당 작업 시 기존에 매핑됐던 파티션과 컨슈머를 최대한 유지하려고 하는 전략
+* 목적 및 우선순위
+** 균형잡힌 파티션 할당
+** 재할당 발생 시 기존 파티션 정보 보장
+
+=== CooperativeStickyAssignor
+
+==== EAGER 프로토콜
+
+* 이전까지의 컨슈머 리밸런싱 동작 사용
+** 컨슈머 리밸런싱 동작 시 assign 된 모든 파티션을 항상 취소
+*** 파티션 소유권 변경 + 구현의 단순함
+** 감지 -> 중지 -> 재시작: downtime 이 존재
+
+==== COOPERTAIVE 프로토콜
+
+* kafka 2.3 부터 kafka connect 에 CooperativeStickyAssignor 적용
+* kafka 2.4 부터 consumer client 에도 적용
+* 되도록 실행 중인 컨슈머에게 영향을 주지 않는 상태에서 리밸런싱
+* 감지 -> 1번째 리밸런싱 -> 2번째 리밸런싱 -> ...
+
+== Exactly-once consumer
+
+`ISOLATION_LEVEL_CONFIG` = read_committed (transaction 이 완료된 이벤트만 읽음)
+
+* *transaction consumer 라고 해서 정확히 한 번만 가져오는 것은 아님*
+** producer 와 달리 transaction coordinator 와 통신하는 부분이 없으므로 보장할 수 없음
+* 그렇다면 어떻게 동작하는건가
+* `Consume-Message Process-Producing` 의 동작이 모두 하나의 transaction 으로 처리되어야 함
+* `sendOffsetsToTransaction` 메소드를 이용 - consumer group 의 offset commit 을 transaction 에 포함
+** transaction 이 실패하면 consumer group 의 offset commit 이 증가하지 않음
+** https://www.baeldung.com/kafka-exactly-once
