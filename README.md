@@ -40,7 +40,7 @@
 
 ### Refactoring (2022/06 ~)
 - https://refactoring.com/
-- toc en: https://www.oreilly.com/library/view/refactoring-improving-the/0201485672/
+- toc en: https://www.oreilly.com/library/view/refactoring-improving-the/9780134757681//
 
 ---
 
