@@ -1,0 +1,133 @@
+= 7. 카프카 운영과 모니터링
+
+== 안정적인 운영을 위한 주키퍼와 카프카 구성
+
+카프카가 안정적이기 때문에 단순하게 생각할 수 있으나, 관리 소홀로 큰 장애가 이어질 수 있어 조심해야 함
+
+=== Zookeeper 구성
+
+==== 서버 대수
+
+* quorum (과반수) 구성을 기반으로 하므로 홀수로 구성
+
+==== 하드웨어
+
+* 메모리: 4~8 GB
+** zookeeper 에서 필요한 heap: 1~2 GB
+* 디스크: 240 G or 480 G SSD
+** 트랜잭션, 스냅샷 로그들을 로컬 디스크에 저장
+* 네트워크: 1 G 이더넷 카드
+
+==== 배치
+
+* 여러 rag 에 분산하는 것을 권장
+* 클라우드의 경우 availability zone 을 운영하므로 2~3 개로 분산
+
+=== Kafka 구성
+
+==== 서버 대수
+
+* 홀수 짝수 관계 없음, 최소 3대 권장
+* 확장이 쉬우므로 수량을 과하게 산정하지 않아도 됨
+
+==== 하드웨어
+
+* CPU: 사용률이 높으므로 코어 수가 많은거로
+** 배치, 압축
+* 메모리: 32~256 GB
+** JVM heap size: 6GB
+** 나머지는 page cache 로 사용하여 여유가 있는게 좋음
+* 디스크: 4TB 이상, 하나의 서버에 10개 정도의 디스크 장착 (병렬)
+* 네트워크: 10 G 이더넷 카드
+** 대당 네트워크 사용량 비율이 50% 가 넘지 않도록 토픽 분산
+** 장애 복구 / 신규 브로커 추가로 대량 데이터 이동 발생 -> 충분히 확보해두어야 함
+
+==== 배치
+
+* zookeeper 와 동일
+
+=== 모니터링 시스템 구성
+
+* 이슈, 문제를 사전 예측 -> 조치
+* 장애를 빠르게 감지
+* 애플리케이션 로그 분석, 메트릭
+
+==== 로그 관리와 분석
+
+* 로그 레벨 변경: `{kafkaPath}/config/log4j.properties`
+
+.로그 파일 종류와 역할
+[cols="2,4"]
+|===
+|파일명 |설명
+
+|server.log
+|브로커 설정 정보와 정보성 로그. 재시작하는 경우 브로커 옵션 정보 기록
+
+|state-change.log
+|컨트롤러로부터 받은 정보
+
+|kafka-request.log
+|클라이언트로부터 받은 정보
+
+|log-cleaner.log
+|log compacton 동작
+
+|controller.log
+|컨트롤러 관련 정보
+
+|kafka-authorizer.log
+|인증 관련 정보
+|===
+
+==== JMX 를 이용한 메트릭 모니터링
+
+* JMX: Java Management eXtensions
+** Java 애플리케이션 모니터링 API
+** MBean (Managed Bean) 객체로 표현
+* 절차
+.. JMX 포트 오픈
+.. 메트릭 정보를 GUI 형태로 볼 수 있도록 구성
+*** Prometheus, Exporter
+
+===== JMX 설정 방법
+
+* 디폴트 포트 = 9999
+
+===== Prometheus 설치
+
+(227 ~ 229p)
+
+* metric 기반 모니터링 시스템
+
+===== Grafana 설치
+
+* 대시보드 오픈소스 도구
+* 공식 홈페이지에서 제공하는 대시보드 목록이 있음 - ID 기반으로 import 가능
+
+
+===== exporter 설치
+
+* Prometheus 가 인식할 수 있는 형태로 나타내는 agent
+** Prometheus 의 모니터링 방식 = pull
+** 모니터링하고자 하는 서버에 자신의 metric 정보륾 보여줄 수 있는 Exporter 를 설치해야 함
+* Prometheus 환경 설정 파일에 등록하면 주기적으로 대상 서버의 metric 값을 가져와서 DB 에 저장
+* 요청에 응답하기 위한 독립적인 http 서버 설정 or java agent
+* 사내에서는 자동으로 등록되는건지 알아서 해줘서 설정해본 적이 없긴 함
+* 포트 정보
+** JMX: 9999
+** exporter: 7071
+** Node: 9100
+* Node Exporter: 하드웨어 리소스 모니터링
+* Grafana - Add data source - Prometheus (http://~:9090)
+
+===== JMX 모니터링 지표
+
+248 ~ 250 p
+
+https://docs.confluent.io/current/kafka/monitoring.html
+
+==== Kafka Exporter
+
+* consumer lag 모니터링
+* 포트 = 9308
