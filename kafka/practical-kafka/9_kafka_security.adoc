@@ -1,0 +1,194 @@
+= 9. 카프카 보안
+
+== 세 가지 요소
+
+* 암호화: 패킷 암호화
+* 인증: 확인된 클라이언트만 접근
+* 권한: 특정 토픽 제한
+
+=== 암호화 (SSL)
+
+Secure Socket Layer
+
+* CA (Certificate Authority) 로 부터 인증서 발급
+* Public Key, Private Key 방식으로 암호화 복호화
+* Symmetric, Asymmetric key
+
+=== 인증 (SASL)
+
+Single Authentication and Security Layer
+
+* SASL/GSSAPI
+** kerberos 인증으로 많이 사용되는 방식
+** kerberos 가 사내에 있다면 사용하는게 좋음
+** REALM
+* SASL/PLAIN: ID, PW 를 텍스트로 사용 - 테스트 목적
+* SASL/SCRAM-SHA-256, SASL/SCRAM-SHA-512
+** 암호 + gotl cnrk
+** SCRAM - Salted Challenge Response Authentication Mechanism
+*** zookeeper 에 인증 정보를 저장 - kerberos 가 구성되어 있지 않은 환경
+* SASL/OAUTHBEARER: 2.0 부터 지원이지만 기능이 제한적이어서 개발 환경 정도만 적용 가능
+
+=== 권한 (ACL)
+
+Access Control List
+
+== SSL 을 이용한 암호화
+
+JAVA 의 keytool 명령어를 이용하여 적용 +
+KeyStore interface
+
+=== broker KeyStore 생성
+
+* KeyStore: 서버 측면에서 Private Key, 인증서 저장, 자격증명 제공 + 민감 정보
+* TrustStore: 클라이언트 측면에서 Public Key, SSL 연결 유효성 검사하는 서명된 인증서
+
+.ssl 적용
+[source,bash]
+----
+[ ~]$ sudo mkdir -p /usr/local/kafka/ssl
+[ ~]$ cd /usr/local/kafka/ssl
+[ ssl]$ export SSLPASS=peterpass // <1>
+[ ssl]$ sudo keytool -keystore kafka.server.keystore.jks -alias localhost -keyalg RSA -validity 365 -genkey -storepass $SSLPASS -keypass $SSLPASS -dname "CN=peter-kafka01.foo.bar" -storetype pkcs12 // <2>
+
+[ ssl]$ keytool -list -v -keystore kafka.server.keystore.jks // <3>
+----
+<1> 환경 변수를 이용한 비밀번호 설정
+<2> keystore 생성
+<3> 비밀번호 입력 -> 키 저장소에 대한 정보 확인
+
+=== CA 인증서 생성
+
+[source,bash]
+----
+[ ssl]$ sudo openssl req -new -x509 -keyout ca-key -out ca-cert -days 356 -subj "/CN=foo.bar" -nodes
+----
+
+=== TrustStore 생성
+
+[source,bash]
+----
+[ ssl]$ sudo keytool -keystore kafka.server.truststore.jks -alias CARoot -importcert -file ca-cert -storepass $SSLPASS -keypass $SSLPASS
+----
+
+=== 인증서 서명
+
+[source,bash]
+----
+[ ssl]$ sudo keytool -keystore kafka.server.truststore.jks -alias localhost -certreq -file cert-file -storepass $SSLPASS -keypass $SSLPASS // <1>
+[ ssl]$ sudo openssl x509 -req -CA ca-cert -CAkey ca-key -in-cert-file -out cert-signed -days 365 -CAcreateserial -passin pass:$PASSWORD cert-file -storepass $SSLPASS -keypass $SSLPASS // <2>
+[ ssl]$ sudo keytool -keystore kafka.server.keystore.jks -alias CARoot -importcert -file ca-cert -storepass $SSLPASS -keypass $SSLPASS // <3>
+----
+<1> 인증서 추출
+<2> CA 서명 적용
+<3> keystore 에 ca-cert 와 cert-signed 를 추가
+
+=== 나머지 broker 에 대한 SSL 구성
+
+. 동일한 위치에 디렉토리 생성
+. keystore 생성 (-dname 설정 주의)
+. 위에서 생성한 CA 인증서와 key 파일을 복사
+. CA 인증서를 통해 TrustStore 를 나머지 broker 에서도 keystore 를 신뢰하도록 설정
+
+=== broker 설정에 SSL cnrk
+
+.`server.properties`
+[source,properties]
+----
+listners=
+advertised.listeners=
+
+ssl.truststore.location=
+ssl.truststore.password=
+ssl.keystore.location=
+ssl.keystore.password=
+ssl.key.password=
+security.inter.broker.protocol=SSL
+----
+
+=== SSL 기반 메시지 전송
+
+. 클라이언트용 truststore 생성
+. 설정 적용하여 9093 포트로 발송
+
+.ssl.config
+----
+security.protocol=SSL
+ssl.truststore.location=
+ssl.truststore.password
+----
+
+== kerberos (SASL) 을 이용한 인증
+
+* Kerberos: ticket 을 기반으로 하는 컴퓨터 네트워크 인증 프로토콜. 신원 식별
+** 하나의 티켓을 이용하여 같이 적용할 수 있는 Single Sign-On (SSO) 지원
+
+=== 구성
+
+* `kadmin.local` 명령어
+** 유저 생성
+** principal 생성
+** keytab 생성
+
+=== keytab 을 이용한 인증
+
+* `/usr/local/kafka/keytabs` 로 복사
+** `-i` 옵션으로 `keypair.pem` 을 지정
+* 모든 서버의 `/etc/krb5.conf` 파일에서 REALM 정보 추가
+* `kinit -kt <file-name>` 으로 티켓 발급
+
+=== broker kerberos 설정
+
+.`server.properties`
+[source,properties]
+----
+listners=SASL_PLAINTEXT://
+
+security.inter.broker.protocol=SASL_PLAINTEXT
+sasl.enabled.mechanism=GSSAPI
+sasl.kerberos.service.name=
+----
+
+.`kafka_server_jaas.conf`
+----
+KafkaServer {
+    con.sun.security.auth.module.Krb5LoginModule required
+    useKeyTab=true
+    storeKey=true
+    keyTab="~~"
+    principal="~~"
+}
+----
+
+[source,properties]
+----
+# /usr/local/kafka/config/jmx
+
+KAFKA_OPTS="-Djava.security.auth.login.config=~kafka_server_jaas.conf"
+----
+
+=== client kerberos 설정
+
+.`kafka_client_jaas.conf`
+----
+KafkaServer {
+    con.sun.security.auth.module.Krb5LoginModule required
+    useTicketCache=ture;
+}
+----
+
+[source,bash]
+----
+export KAFKA_OPTS="-Djava.security.auth.login.config=~kafka_client_jaas.conf"
+----
+
+.`kerberos.config` (Producer Config)
+----
+sasl.mechanism=GSSAPI
+security.protocol=SASL_PLAINTEXT
+sasl.kerberos.service.name=
+----
+
+== ACL 로 권한 설정
+
+TODO
