@@ -191,4 +191,25 @@ sasl.kerberos.service.name=
 
 == ACL 로 권한 설정
 
-TODO
+`kafka-acls.sh`
+
+=== broker 권한 설정
+
+.`server.properties`
+[source,properties]
+----
+authorizer.class.name=kafka.security.authorizer.AclAuthorizer
+super.users=User:admin;User:kafka
+----
+
+=== 유저별 권한 설정
+
+* user01: topic09 에 RW 가능
+* user02: topic10 에 RW 거눙
+* admin: topic09, topic10 에 RW 가능
+
+[source,bash]
+----
+[ ~]$ **/kafka-acls.sh --authorizer-properties zookeeper.connect=zk:2181 \
+    --add -allow-principal User:peter01 --operation Read --operation Write --operation DESCRIBE --topic topic09
+----
