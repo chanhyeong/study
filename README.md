@@ -15,7 +15,7 @@
 - Kafka The Definitive Guide (2021/04 ~ 07)
   - pdf: https://www.confluent.io/wp-content/uploads/confluent-kafka-definitive-guide-complete.pdf
 - Kafka 데이터 플랫폼의 최강자
-- 실전 카프카 개발부터 운영까지
+- 실전 카프카 개발부터 운영까지 (2022/07 ~ 09)
 
 ### DDD (2021/06 ~ 09)
 - Domain Driven Design - Tacking complexity in the heart of software
@@ -38,7 +38,7 @@
 ### Enterprise Integration Patterns
 - https://www.enterpriseintegrationpatterns.com/
 
-### Refactoring (2022/06 ~)
+### Refactoring (2022/06 ~ 09)
 - https://refactoring.com/
 - toc en: https://www.oreilly.com/library/view/refactoring-improving-the/9780134757681//
 
