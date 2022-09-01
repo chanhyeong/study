@@ -1,0 +1,204 @@
+= 11. Kafka Connect
+
+* 데이터 중심 파이프라인
+* 유연성과 확장성
+* 재사용성과 기능 확장
+* 장애 및 복구
+
+== 핵심 개념
+
+* source: 데이터 소스
+* source connect: source 방향에 있는 connect
+* sink connect: sink 방향에 있는 connect
+* sink: 데이터 도착지
+
+=== 구성
+
+==== Worker
+
+Worker (Instance)
+
+* kafka connect 가 실행되는 서버 또는 인스턴스
+* connect, task 들이 실행됨
+* Mode
+** Distributed: 하나가 장애나도 담당 connector, task 는 다른 곳으로 이동
+** Standalone: 그렇지 않음. 테스트 용
+
+==== Connector
+
+* 데이터를 어디에서 어디로 복사해야 하는지 작업 정의, 관리
+
+==== Task
+
+* connector 가 정의한 작업을 직접 수행하는 역할
+* connector 가 작업을 정의하고 worker 에 분산
+* source, sink task 로 나뉨
+
+== 내부 동작
+
+source -> kafka or kafka -> sink
+
+* partitioning 개념을 적용하여 데이터들을 하위 집합으로 나눔
+** kafka partition 과는 아무 관계 없음
+** record 순서에 맞게 정렬됨
+. stream: partitioning
+. connector: source -> stream, max task 수 지정
+. connector 가 kafka 로 발행
+* 각 partition 은 offset 이 포함되어 있어 장애, 실패의 경우에도 지정된 위치부터 데이터 이동할 수 있음
+** 파일: 파일의 위치
+** DB: timestamp or sequence Id
+
+== Standalone Kafka 예시
+
+=== File Source Connector 
+
+.connect-file-source.properties 생성
+[source,properties]
+----
+name=local-file-source
+connector.class=FileStreamSource
+tasks.max=1
+file=/home/ec2-user/test.txt
+topic=connect-test
+----
+
+.config/connect-standalone.properties 설정 수정
+[source,properties]
+----
+bootstrap.servers=
+key.converter=org.apache.kafka.connect.json.JsonConverter
+value.converter=org.apache.kafka.connect.json.JsonConverter
+key.converter.schemas.enable=false
+value.converter.schemas.enable=false
+offset.storage.file.filename/tmp/connect.offsets
+offset.flush.interval.ms=10000
+----
+
+.실행
+[source,bash]
+----
+[ ~]$ vi **/connect-standalone.sh -daemon connect-standalone.properties connect-file-source.properties
+----
+
+.connect REST API 로 수행 확인
+[source,bash]
+----
+[ ~]$ curl http://localhost:8083/connectors/local-file-source
+----
+
+=== File Sink Connector
+
+REST API 로 실행 예시
+
+.connect REST API 로 실행하고 수행 확인
+[source,bash]
+----
+[ ~]$ curl -H "Content-Type: application/json" -H "Accept: application/json" -X PUT --data '{\
+    "name": "local-file-sink", \
+    "connector.class": "FileStreamSink", \
+    "tasks.max": "1", \
+    "file": "/home/ec2-user/test.sink.txt", \
+    "topics": "connect-test" \
+}' http://localhost:8083/connectors/local-file-sink/config
+
+[ ~]$ curl http://localhost:8083/connectors/local-file-sink
+----
+
+== Distributed Kafka Connect
+
+metadata 저장소로 카프카 내부 토픽 이용
+
+* 확장성, fault tolerance, auto rebalancing 등
+
+.config/connect-distributed.properties 설정 수정
+[source,properties]
+----
+bootstrap.servers=
+group.id=
+key.converter=org.apache.kafka.connect.json.JsonConverter
+value.converter=org.apache.kafka.connect.json.JsonConverter
+key.converter.schemas.enable=false
+value.converter.schemas.enable=false
+offset.storage.topic= // <1>
+offset.storage.replication=
+offset.storage.partitions=
+config.storage.topic= // <2>
+config.storage.replication=
+config.storage.partitions=
+status.storage.topic= // <3>
+status.storage.replication=
+status.storage.partitions=
+
+offset.flush.interval.ms
+----
+
+<1> connector offset 추적을 위한 내부 토픽
+<2> connector 설정 저장을 위한 내부 토픽
+<3> connector 상태 저장을 위한 내부 토픽
+
+.실행
+[source,bash]
+----
+[ ~]$ vi **/connect-distributed.sh -daemon connect-distributed.properties
+----
+
+== Connector 기반의 MirrorMaker 2.0
+
+=== 다중 클러스터와 MirrorMaker
+
+. 장애 복구 차원에서 다중 데이터 센터를 운영하는 경우
+. on-premise -> cloud 로 마이그레이션하려는 경우
+. 데이터 분석을 위한 용도로 카프카 간 리플리케이션
+** upstream (실시간), downstream (배치용)
+. 데이터 센터가 원거리에 위치하는 경우
+
+==== 1.0 버전의 한계
+
+단순 consumer, producer 가 내장된 도구, 추가 기능이 제공되지 않음 +
+아래는 지원 안하던 기능
+
+* 원격 토픽 생성 시 기본 옵션으로 생성
+* 소스 토픽의 옵션을 원격 토픽에 적용 불가
+* 설정 변경 시 재시작 필요
+
+=== 특징
+
+==== 원격 토픽과 alias 기능
+
+* source -> target 으로 target topic 들을 replication
+** 단방향, 양방향 가능
+** 양방향: active/active replication topic name 정책 적용
+* alias
+** 양방향 복제일 때 양 쪽의 복제되는 토픽명을 구분
+
+==== kafka cluster 통합
+
+* us-west.topic1, us-east.topic1, topic1 3개 토픽을 downstream consumer 가 통합해 컨슘할 수 있다
+
+==== 무한 루프 방지
+
+* 동시에 2개의 클러스터를 서로 복제할 수 있도록 구성 가능 (alias)
+
+==== 토픽 설정 동기화
+
+* source topic 모니터링 및 변경 사항을 대상 토픽으로 전파
+
+==== 안전한 저장소로 내부 토픽 활용
+
+* 내부 health check 를 수행하며 내부 토픽을 사용
+* heartbeat, checkpoint (consumer group offset 정보 관리), offset sync (복제 체크)
+
+==== kafka connect 지원
+
+* kafka connect 를 기반으로도 동작 가능
+
+=== 실행
+
+4가지 방법
+
+* 전용 (dedicated) Mirror Maker cluster
+* Distributed connect cluster 에서 Mirror Maker connect 이용
+* Standalone Connect worker
+* Legacy 방식 스크립트
+
+책에서는 두 번째의 분산 예시 (386p ~)
