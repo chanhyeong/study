@@ -1,0 +1,21 @@
+= 12. 엔터프라이즈 카프카 아키텍처 구성 사례
+
+스키마 레지스트리, 프로듀서 / 컨슈머, 카프카 커넥트 - 클러스터 미러링, 모니터링
+
+== 개요
+
+* 카프카 간 데이터 리플리케이션: 미러 메이커
+* hadoop (long term batch), ES (realtime search), HBase (realtime BigData R/W)
+
+=== 구성
+
+* upstream, downstream cluster, mirror maker
+* schema registry, ES, kibana, CMAK
+* prometheus, grafana
+
+== 환경 구성
+
+* 같이 배치해야 한다면, 카프카 커넥트는 downstream 쪽에 위치하는게 좋다 - 네트워크 이슈
+** 카프카 커넥트가 upstream -> downstream 으로 보낼 때 유실 가능성 (로컬에선 적음)
+
+이후는 실습이어서 생략
