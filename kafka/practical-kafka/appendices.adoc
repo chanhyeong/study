@@ -1,0 +1,40 @@
+= Appendix
+
+== MSK 와 Confluent cloud
+
+=== MSK
+
+AWS Managed Streaming for Apache Kafka
+
+* 빠르고, 업그레이드 쉽고 등의 편의 기능
+* CLI 로 토픽 생성 불가능, console producer, consumer 사용 불가능, 모니터링 운영 부족
+* TCP 보트만 열림, ssh 로 접근 불가
+
+=== Confluent Cloud
+
+* AWS, Azure, GCP 등 대부분의 퍼블릭 클라우드 지원
+
+== ansible
+
+=== 특징
+
+* 복잡한 구성 환경 개선, 빠르게 배포하고 관리하기 위한 도구
+* 앤서블 관리 노드를 이용: 여러 개의 원격 서버들을 효율적으로 관리
+* 시간 절약, 생산성 증가, 반복 작업 제거, 실수 및 에러율 감소, 코드 가독성 향상, 간단한 코딩 방식, SSH 기반 실행
+
+=== 기능
+
+==== inventory
+
+* 제어하려는 대상 서버들의 리스트 `/etc/ansible/hosts`
+
+==== playbook
+
+* 원격 서버에서 실행할 여러 개의 모듈 또는 명령어를 모아둔 것 (483p)
+
+== Docker 를 이용한 카프카 설치
+
+생략
+
+kubernetes confluent 같은게 나올걸 기대했는데 앖음.. +
+https://docs.confluent.io/operator/current/co-quickstart.html#step-3-install-cp
