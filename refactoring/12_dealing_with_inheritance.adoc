@@ -1,0 +1,164 @@
+== 12. 상속 다루기
+
+=== 메소드 올리기 (Pull Up Method)
+
+==== 배경
+
+* 메소드들의 본문 코드가 똑같을 때
+
+==== 절차
+
+. 동일한 동작의 메소드인지 확인
+** 동작이 같으나 코드가 다르면 래픽토링
+. 메소드 내 타 메소드와 필드들이 superclass 에서도 호출하고 참조 가능한지 확인
+. 메소드 시그니처가 다르면 통일
+. superclass 에 새로운 메소드 생성, 코드 복붙
+. 컴파일
+. 서브클래스 메소드 제거, 테스트, 반복
+
+=== 필드 올리기 (Pull Up Field)
+
+==== 배경
+
+* 필드들이 비슷한 방식으로 쓰이면 끌어올림
+** 중복 제거
+** 필드 관련 사용 동작을 subclass -> superclass
+
+==== 절차
+
+. 필드 사용 방식이 같은지 확인
+. 필드 명이 다르면 똑같은 이름으로 변경
+. superclass 에 새로운 필드 생성
+. subclass 필드 제거, 테스트
+
+=== 생성자 본문 올리기 (Pull Up Constructor Body)
+
+==== 배경
+
+* 생성자는 할 수 있는 일과 호출 순서에 제약이 있어 접근 방식을 다르게 해야 함
+
+==== 절차
+
+. superclass 에 생성자가 없으면 추가. 하위에서 호출되는지 확인
+. 공통 문장 모두를 super() 호출 직후로 옮김 -> superclass 에 추가, sub 에선 제거
+. 테스트
+. 생성자로 옮길 수 없는건 함수 추출하기와 메소드 올리기를 적용
+
+=== 메소드 내리기 (Push Down Method)
+
+==== 배경
+
+* 특정 subclass 하나 or 소수에 관련된 메소드는 제거 -> subclass 들에만 추가
+
+==== 절차
+
+. 대상 메소드를 모든 subclass 에 복사, superclass 에서 제거, 테스트
+. 사용하지 않는 subclass 에선 제거, 테스트
+
+=== 필드 내리기 (Push Down Field)
+
+=== 타입 코드를 서브클래스로 바꾸기 (Replace Type Code with Subclasses)
+
+==== 배경
+
+* 타입 필드 (enum, string, number) 를 subclass 로 변경
+* subclass 의 이점
+.. 다형성 제공
+.. 특정 타입에서만 의미있는 값을 사용하는 필드나 메소드가 있을 때
+* 방법
+.. 대상 클래스에 직접 적용 (Employee 하위 타입인 Engineer)
+.. 타입 코드 자체에 적용 (직원 유형 속성을 클래스로 정의)
+
+==== 절차
+
+. 타입 코드 필드를 자가 캡슐화 (같은 클래스에서도 getter 호출)
+. 타입 코드 하나에 대한 subclass 생성, getter override 하여 해당 타입 코드의 literal 값 반환
+. 매개변수로 받은 타입 코드와 subclass 를 매핑하는 선택 로직 생성
+. 타입 코드 각각에 대해 subclass 생성과 선택 로직 추가 반복
+. 타입 코드 필드 제거
+. 타입 코드 접근자에 이용하는 메소드 모두에 메소드 내리기, 조건부 로직을 다형성으로 바꾸기 적용
+
+==== 예시
+
+. 직접 상속 (Employee -> Engineer)
+. 간접 상속 (Employee.type -> EmployeeType)
+
+=== 서브클래스 제거하기 (Remove Subclasses)
+
+==== 배경
+
+* 더 이상 사용되지 않는 서브클래스 -> superclass 의 필드로 대체
+
+==== 절차
+
+. subclass 생성자를 factory method 로 변경
+. subclass 타입 검사 코드 -> 함수 추출하기, 함수 옮기기로 superclass 로 옮김
+. subclass 타입을 나타내는 필드를 superclass 에 만듦
+. subclass 를 참조하는 메소드가 3의 필드를 이용하도록 수종
+. subclass 를 지우고 테스트
+
+=== 슈퍼클래스 추출하기 (Extract Superclass)
+
+==== 배경
+
+* 비슷한 일을 수행하는 두 클래스가 보이면 superclass 로 옮겨 담을 수 있다
+* 저자 의견: 상속을 프로그램이 성장하면서 깨우쳐가게 되고, 공통 요소를 찾았을 때 수행하는 사례가 잦았다
+
+==== 절차
+
+. 빈 superclass 생성, 상속하게 변경, 테스트
+. 생성자 본문 올리기, 메소드 올리기, 필드 올리기 적용
+. subclass 에 남은 메소드 검토
+. 원래 클래스 사용 코드를 superclass 로 사용하게 할지 고민
+
+=== 계층 합치기 (Collapse Hierarchy)
+
+==== 배경
+
+* 부모와 비슷하여 어느 순간 독립적으로 존재해야 할 이유가 사라지는 경우도 있음
+
+==== 절차
+
+. 제거할 클래스 선택
+. 필드 올리기, 메소드 올리기, 필드 내리기, 메소드 내리기 등을 적용하여 하나의 클래스로 옮김
+. 제거할 클래스를 참조하는 코드를 전부 대체
+. 빈 클래스 제거, 테스트
+
+=== 서브클래스를 위임으로 바꾸기 (Replace Subclasses with Delegate)
+
+==== 배경
+
+* 상속의 단점
+** 한 번만 쓸 수 있다
+** 클래스들의 관계를 결합
+* delgate: 다양한 클래스에 서로 다른 이유로 위임 가능, 객체 사이의 일반적인 관계
+* 상속을 자주 사용하더라도 언제든지 delegate 로 바꿀 수 있다
+* 디자인 패턴의 State, Strategy Pattern 으로 대체한다고 생각하면 된다
+
+==== 절차
+
+. 생성자 호출 -> factory method 로 변경
+. 위임으로 사용할 클래스 생성
+** subclass 에 특화된 데이터를 받고, superclass 를 가리키는 back-reference 도 필요
+. 위임으로 저장할 필드를 superclass 에 추가
+. subclass 생성 코드를 수정 -> delegate 인스턴스 생성, delegate 필드에 대입하여 초기화
+. subclass 의 메소드 중 delegate 클래스로 이동할 것을 고름
+. 함수 옮기기로 이동, 원래 메소드에서 위임하는 코드는 지우지 않음
+. subclass 외부에도 원래 메소드를 호출하는게 있다면 subclass 위임 코드를 superclass 로 옮김
+** 위임이 존재하는지를 검사하는 보호 코드로 감싸야 함. 외부 코드가 없으면 죽은 코드 제거
+. 반복
+. subclass 생성자 호출 코드를 찾아서 superclass 생성자를 사용하도록 수정
+. subclass 제거
+
+=== 슈퍼클래스를 위임으로 바꾸기 (Replace Superclass with Delegate)
+
+==== 배경
+
+* 사용되지 않는 연산이 많음에도 모든 연산이 노출됨
+** JAVA 의 Stack
+
+==== 절차
+
+. superclass 객체를 참조하는 필드를 subclass 에 만듦
+. superclass 의 동작 각각에 대응하는 전달 함수를 subclass 에 만듦
+. superclass 의 동작이 전달 함수로 override 되면 상속을 끊음
