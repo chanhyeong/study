@@ -1,0 +1,204 @@
+= 1. The IoC Container
+
+Inversion of Control container - Aspect-Oriented Programming 을 밀접하게 따름 (AspectJ 이용 - 현재 시점에서 가장 성숙한 AOP 구현체)
+
+== 1.1. Introductions to the Spring IoC Container and Beans
+
+* IoC (a.k.a. DI)
+** 객체: 자신의 의존성을 생성자 인자, 인자 -> 팩토리 메소드 or 팩토리 메소드로 부터 생성되거나 반환되는 객체 인스턴스들의 집합 속성들 정의
+** container: bean 을 생성할 때 객체들의 의존성을 주입
+** 의존성의 instantiation or location 의 제어가 역으로 처리됨 (direct construction, https://velog.io/@gillog/Service-Locator-Pattern[Service Locator Pattern])
+* `org.springframework.beans`, `org.springframework.context` 패키지가 IoC container 의 기반
+* `BeanFactory`: 어느 타입의 객체든 관리할 수 있는 전화된 설정 매커니즘 제공
+* `ApplicationContext`: BeanFactory 의 sub-interface
+** Spring's AOP 기능과 쉬운 통합
+** Message resource handling (국제화)
+** Event publication
+** Application-layer 특화 context (WebApplicationContext 등)
+* bean
+** Spring Ioc container 에 의해 우리 앱을 구성하는 객체들 (초기화되고, 결합되고, 관리됨)
+
+== 1.2. Container Overview
+
+* `org.springframework.context.ApplicationContext`: Spring IoC container 를 표현. bean 초기화, 설정, 관리 책임
+** container 는 어떤 객체가 초기화, 설정, 결합되어야 하는지는 configuration metadata 를 읽어들임으로 알 수 있음
+** configuration metadata: XML, Java annotation, java code - 객체 조합을 표현할 수 있음
+* `ApplicationContext` 의 몇 가지 구현체
+** 보통은 `ClassPathXmlApplicationContext`, `FileSystemXmlAppplicationContext` (XML 기반으로 정의한 전통적인 포맷)
+** Java annotation 이나 코드로 할 수도 있음
+
+.The Spring Ioc Container
+image::https://docs.spring.io/spring-framework/docs/current/reference/html/images/container-magic.png[]
+
+=== 1.2.1. Configuration Metadata
+
+* Ioc container 는 configuration metadata 를 소비한다
+* 애플리케이션 개발자로서 Spring container 에게 어떻게 앱의 객체들을 초기화, 구성, 결합할지 알려주는 역할
+* 전통적으로는 간단하고 직관적인 XML 포맷 제공
+* 다른 방법
+** Anootation-based configuration: Spring 2.5 부터 개별 어노테이션으로 구성 방법 제공 (1.9 에서 나옴)
+** Java-based configuration: Spring 3.0 qnxj Configuration, Beam, Import, DependsOn 등이 제공
+* Spring configuration 은 container 가 관리할 적어도 하나 그리고 하나 이상의 bean 를 포함해야 한다
+
+=== 1.2.2. Instantitating a Container
+
+`ApplicationContext` 생성자로 제공되는 location path 들은 configuration metadata 로 불려질 resource string (local file system, Java CLASSPATH 등. 2장에서 다룰 예정)
+
+[source,kotlin]
+----
+val context = ClassPathXmlApplicationContext("services.xml", "daos.xml")
+----
+
+==== Composing XML-based Configuration Metadata
+
+* XML fragments 로 bean 정의를 불러올 수 있음 (`<import/>`)
+* 첫 `/` 는 무시되고 relative 로 가져옴
+** `../`, `classpaht:../` 를 사용할 수는 있으나 권장하진 않음
+*** runtime resolution process 가 가까운 classpath 루트를 찾는데 부모 디렉토리일 수 있음 (??). 잘못된 경로를 선택할 수 있음
+
+==== The Groovy Bean Definition DSL
+
+Grails framework 를 이용. `importBeans` 가 XML 의 것과 대응
+
+[source,groovy]
+----
+beans {
+    dataSource(BasicDataSource) {
+        driverClassName = "org.hsqldb.jdbcDriver"
+        url = "jdbc:hsqldb:mem:grailsDB"
+        username = "sa"
+        password = ""
+        settings = [mynew:"setting"]
+    }
+    sessionFactory(SessionFactory) {
+        dataSource = dataSource
+    }
+    myService(MyService) {
+        nestedBean = { AnotherBean bean ->
+            dataSource = dataSource
+        }
+    }
+}
+----
+
+=== 1.2.3. Using the Container
+
+* 다른 bean 들과 의존성을 관리하는 레지스트리를 유지하는 factory
+* `T getBean(String name, Class<T> requiredType)` 으로 bean 인스턴스를 꺼내올 수 있음
+
+== 1.3. Bean Overview
+
+`BeanDefinition`: bean 정의의 표현. 아래의 metadata 를 가짐
+* package-qualified class name: 보통 실제 구현채 클래스
+* Bean 의 behavioral configuration elements: 어떻게 bean 이 container 안에서 기술되는가 (scope, lifecycle callbacks 등)
+* References to other beans: bean 이 작동하기 위해 필요 (collaborators or dependencies 로 불리기도 함)
+* Other configuration settings: pool size limit 등
+
+metadata 는 각 bean 정의를 구성하는 property 집합들을 번역 (Class, Name, Scope, Contructor arguments, Properties, Autowiring mode, Lazy initialization mode, Initailization method, Destruction method)
+
+`ApplicationContext` 는 컨테이너 밖에서 생성된 존재하는 객체들에 대한 registration 허가도 담당 (`DefaultListableBeanFactory` registerSingleton, registerBeanDefinitions)
+
+=== 1.3.1. Naming Beans
+
+모든 bean 은 하나 혹은 이상의 식별자들을 가진다.
+
+
+.Bean Naming Conventions
+****
+표준 Java convention 을 사용 - 소문자로 시작, camel-cased
+
+설정을 읽고 이해하기 쉽게 하고, AOP 에서 advice 를 적용하는데 도움을 준다
+****
+
+NOTE: component scanning 을 하면서 Spring 은 네이밍되지 않은 bean 들을 다음 규칙에 따라 진행함: simple class name 을 가져와서 첫 문자를 소문자로 변경 +
+하나 이상의 특수문자거나 두번째까지 대문자인 경우 원래 문자가 쓰인다. `java.beans.Introspector.decapitalize` 와 같은 룰.
+
+==== Aliasing a Bean outside the Bean Definition
+
+bean 정의 시 하나 이상의 이름을 설정할 수 있음
+
+[source,xml]
+----
+<alias name="myApp-dataSource" alias="subsystemA-dataSource"/>
+<alias name="myApp-dataSource" alias="subsystemB-dataSource"/>
+----
+
+=== 1.3.2. Instatiating Beans
+
+bean definition 은 객체 생성하는 recipe -> container 가 보고 찾아서 생성
+
+XML `Class` property 는 두 가지로 사용할 수 있다
+
+* (일반적) bean class 명시하여 `new` 로 생성
+* static factory method
+
+.Nested class names
+****
+com.package.OriginalClass$Nested
+
+$ or . 이 붙는다
+****
+
+==== Instantiation with a Constructor
+
+일반적이어서 생략
+
+==== Instantiation with a Static Factory Method
+
+live object 를 반환하는 메소드
+
+[source,xml]
+----
+<bean id="clientService"
+    class="examples.ClientService"
+    factory-method="createInstance"/>
+----
+
+[source,kotlin]
+----
+// 정의된 코드
+class ClientService private constructor() {
+    companion object {
+        private val clientService = ClientService()
+        @JvmStatic
+        fun createInstance() = clientService
+    }
+}
+----
+
+==== Instantiation by Using an Instance Factory Method
+
+이건 진짜 안쓸거 같아서 생략
+
+==== Determining a Bean’s Runtime Type
+
+특정 bean 의 runtime type 은 중요하다 - Factory method or `FactoryBean` 이 되면서 bean 의 runtime type 이 다를 수 있다 +
+AOP proxying 은 bean instance 를 타겟 빈의 실제 타입의 제한된 노출로 interface-based proxy 로 감쌀 수 있다
+
+추천하는 방법은 부분 bean 의 실제 runtime type 을 알아내기 위해 `BeanFactory.getType` 을 호출하는 것
+
+== 1.4. Dependecies
+
+=== 1.4.1. Dependency Injection
+
+위의 IoC 와 같은 내용
+
+코드가 간결해지고, 디커플링은 더 효과적이게 된다 +
+객체는 자신의 의존성들을 보지 않고, 의존성의 위치나 클래스가 무엇인지 몰라도 된다 +
+테스트하기 쉬워진다 (특히 의존성들이 인터페이스나 추상 클래스면 stub, mock 구현이 허용된다)
+
+Contructor-based, Setter-based 가 존재
+
+==== Constructor-based Dependency Injection
+
+* 생성자를 호출 - 생성자를 static factory method 와 유사하게 다룸
+* 클래스는 POJO - 컨테이너 특화 인터페이스, 기본 클래스, 어노테이션에 대한 의존성이 없음
+
+===== Constructor Argument Resolution
+
+* XML - `<constructor-arg ref=>` 명시
+** bean 인 경우: 클래스 알 필요 없음, 순서는 상관 없음
+*** 순서 명시도 가능 `<constructor-arg index=>`
+** bean 이 아닌 단순 타입인 경우: `<constructor-arg type= value=>`
+** name 을 명시할 경우 생성자에 `@ContructorProperties` 어노티에션 추가
+
