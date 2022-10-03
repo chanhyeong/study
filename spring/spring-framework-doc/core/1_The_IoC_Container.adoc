@@ -90,7 +90,7 @@ beans {
 
 `BeanDefinition`: bean 정의의 표현. 아래의 metadata 를 가짐
 
-* package-qualified class name: 보통 실제 구현채 클래스
+* package-qualified class name: 보통 실제 구현체 클래스
 * Bean 의 behavioral configuration elements: 어떻게 bean 이 container 안에서 기술되는가 (scope, lifecycle callbacks 등)
 * References to other beans: bean 이 작동하기 위해 필요 (collaborators or dependencies 로 불리기도 함)
 * Other configuration settings: pool size limit 등
@@ -178,7 +178,7 @@ AOP proxying 은 bean instance 를 타겟 빈의 실제 타입의 제한된 노�
 
 추천하는 방법은 부분 bean 의 실제 runtime type 을 알아내기 위해 `BeanFactory.getType` 을 호출하는 것
 
-== 1.4. Dependecies
+== 1.4. Dependencies
 
 === 1.4.1. Dependency Injection
 
@@ -375,10 +375,10 @@ bean 이 초기화되기 전에 대놓고 하나 이상의 다른 bean 이 초�
 
 문제가 되는 경우 다음을 고려해라
 
-* explict wiring
+* explicit wiring
 * autowire-candidate
 * primary 속성을 추가해서 single bean definition 에 대한 primary candidate 가 되게 하라
-* Anootation-based 로 사용하라
+* Annotation-based 로 사용하라
 
 ==== Excluding a Bean from Autowiring
 

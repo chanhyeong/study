@@ -26,6 +26,8 @@
 ### Spring
 - Spring in Action 5th edition (2021/09 ~ 10)
 - Mastering Spring 5.0, ...
+- [official docs](https://docs.spring.io/spring-framework/docs/current/reference/html/)
+    - core (2022/10 ~)
 
 ### Cloud native patterns (2021/12 ~ suspend)
 - Cloud native patterns
@@ -41,6 +43,9 @@
 ### Refactoring (2022/06 ~ 09)
 - https://refactoring.com/
 - toc en: https://www.oreilly.com/library/view/refactoring-improving-the/9780134757681//
+
+### Extreme Programming
+- https://www.oreilly.com/library/view/extreme-programming-explained/0321278658/
 
 ---
 
