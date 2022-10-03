@@ -89,6 +89,7 @@ beans {
 == 1.3. Bean Overview
 
 `BeanDefinition`: bean 정의의 표현. 아래의 metadata 를 가짐
+
 * package-qualified class name: 보통 실제 구현채 클래스
 * Bean 의 behavioral configuration elements: 어떻게 bean 이 container 안에서 기술되는가 (scope, lifecycle callbacks 등)
 * References to other beans: bean 이 작동하기 위해 필요 (collaborators or dependencies 로 불리기도 함)
