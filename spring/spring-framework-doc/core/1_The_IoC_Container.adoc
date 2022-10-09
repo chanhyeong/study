@@ -402,3 +402,119 @@ NOTE: final 이면 안된다. abstract 인 경우 stub 구현체 제공되어야
 
 `replace-method` 로 다른 메소드를 구현할 수 있음 +
 `org.springframework.beans.factory.support.MethodReplacer`
+
+== 1.5. Bean Scopes
+
+bean 이 존재할 수 있는 범위
+
+6개의 scope, 4개는 web-aware. +
+custom scope 도 만들 수 있음
+
+.Bean Scopes
+[cols="1,4"]
+|===
+|Scope |Description
+
+|singleton |(Default) 각 Spring IoC container 에서 하나의 bean definition 은 하나의 object instance
+
+|prototype |하나의 bean definition 이 몇 개의 object instance 
+
+|request |하나의 bean definition 이 하나의 HTTP request lifecyle
+
+|session |하나의 bean definition 이 하나의 Session lifecycle
+
+|application |하나의 bean definition 이 하나의 ServletContext
+
+|websocket |하나의 bean definition 이 하나의 WebSocket
+
+|===
+
+=== 1.5.1. Singleton
+
+하나의 공유 instance 만 관리, 모든 요청들은 이 인스턴스를 반환
+
+GoF 의 디자인패턴과는 차이가 있다 +
+GoF = ClassLoader 당 특정 클래스의 단 하나의 인스턴스 +
+Spring = container 당 & bean 당
+
+=== 1.5.2. Prototype
+
+요청할 때마다 새로운 bean instance 를 생성
+
+stateful? -> prototype, stateless -> singleton
+
+Spring 은 prototype bean 들에 대해 완벽한 lifecycle 을 관리하지 않는다 +
+초기화는 잘 해주지만, destruction 까지는 안될 수 있다 -> BeanPostProcessor 를 정의해서 명시적으로 알려줘야 한다
+
+prototype-scope 에 대한 Spring container 의 role 이 Java new operator 에 대한 대체품이 될 수 있다 (?, 1.6 에 대한 내용인가) +
+그 시점 이후의 모든 lifecycle 은 사용자 단에서 관리되어야 한다
+
+=== 1.5.3. Singleton Beans with Prototype-bean Dependencies
+
+singleton bean 에 prototype bean inject 하는 경우 새로 생성되며 다른 곳에서는 사용하지 않는 유일한 bean 인 상태임
+
+singleton 에서 반복적으로 runtime 에서 prototype-base bean 의 새로운 instance 을 생성해서 받아놓길 원한다면 dependency-inject 타임에는 할 수 없음 +
+그걸 원하면 Method Injection (1.4.6.) 을 해라
+
+=== 1.5.4. Request, Session, Application, and WebSocket Scopes
+
+==== Initial Web Configuration
+
+이걸 쓰려면 bean 정의 전에 설정이 필요
+
+Spring Web MVC 내에서 scoped 된걸 쓰면 설정이 필요 없다
+
+Servlet 2.5 를 사용할 때 Spring 의 `DispatcherServlet` 밖에서 처리된 요청을 위해 `RequestContextListener, ServletRequestListener` 를 등록해야 한다
+
+Servlet 3.0 이상을 사용하면 WebApplicationInitializer 를 등록하면 된다
+
+뭘 하는가? -> HTTP request 를 해당 요청을 처리하는 Thread 와 바인딩한다
+
+==== Request, Session
+
+하나의 request (session) 내에서 사용하는 값은 다른 request (session) 에서는 볼 수 없다
+
+`@RequestScope`, `@SessionScope`
+
+(그러면 하나의 요청에서 클래스 내 private 값을 건드려도 다른 데서는 영향이 없는건가?)
+
+==== Application
+
+전체 웹 앱에서 사용되는 bean 을 한 번 생성
+
+이 bean 은 ServletContext 레벨에서 생성되고 attribute 로 저장된다
+
+==== WebSocket
+
+4.4.20.
+
+==== Scoped Beans as Dependencies
+
+다른데서 이 bean 들을 주입받으려면 AOP proxy 로 받아야 한다
+
+lifetime 이 짧으므로 inject 되는 시점과 실제 호출되는 시점에서 사용되는 bean instance 가 다를 수 있다
+
+AOP proxy 를 사용하면 모든 메소드가 proxy 되어 현재 bean instance 에 대해 호출
+
+==== Choosing the Type of Proxy to Create
+
+기본적으로 CGLiB-based 로 만든다
+
+`proxy-target-class=false` 로 하면 JDK interface-based 를 사용할 수 있다
+
+5.8. proxing mechanisms 에서 다룰 예정
+
+=== 1.5.5. Custom Scopes
+
+`org.springframework.beans.factory.config.Scope` 를 구현해야 한다
+
+4개의 메소드
+* `Object get(String, ObjectFactory)`: scope 된 bean 을 반환
+* `Object remove(String)`: 제거
+* `void registerDestructionCallback(String, Runnable)`: destroy 될 때 수행 될 callback
+* `String getConversationId()`: scope 에 있는 conversation identifier 획득
+
+==== Using a Custom Scope
+
+* `void registerScope(String scopeName, Scope scope)`: Spring container 에 등록 (ConfigurableBeanFactory)
+* `CustomScopeConfigurer` 로도 등록 가능
