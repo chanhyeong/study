@@ -509,6 +509,7 @@ AOP proxy 를 사용하면 모든 메소드가 proxy 되어 현재 bean instance
 `org.springframework.beans.factory.config.Scope` 를 구현해야 한다
 
 4개의 메소드
+
 * `Object get(String, ObjectFactory)`: scope 된 bean 을 반환
 * `Object remove(String)`: 제거
 * `void registerDestructionCallback(String, Runnable)`: destroy 될 때 수행 될 callback
