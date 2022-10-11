@@ -519,3 +519,116 @@ AOP proxy 를 사용하면 모든 메소드가 proxy 되어 현재 bean instance
 
 * `void registerScope(String scopeName, Scope scope)`: Spring container 에 등록 (ConfigurableBeanFactory)
 * `CustomScopeConfigurer` 로도 등록 가능
+
+== 1.6. Customizing the Nature of a Bean
+
+bean 을 커스터마이즈 할 수 있는 인터페이스들을 제공한다
+
+=== 1.6.1. LifeCycleCallbacks
+
+bean lifecycle 에 대한 컨테이너 관리와 상호작용하기 위해 `InitializingBean#afterPropertiesSet()`, `DisposableBean#destroy()`
+
+JSR-250 `@PostConstruct` and `@PreDestroy` 에 best practices 로 고려되긴 한다. Spring-specific 한 인터페이스와 커플링되지 않는다 (1.9.9. 에서 다룰 예정)
+
+콜백 인터페이스를 찾고 적절한 메소드를 호출하는데에 내부적으로 `BeanPostProcessor` 구현체를 사용함 +
+커스텀 기능이나 Spring 에서 제공하지 않는 lifecycle 을 원하면 `BeanPostProcessor` 를 구현해라 (1.8. 의 내용)
+
+초기화, 파괴 외에도 `Lifecycle` 인터페이스를 구현하여 startup, shutdown 처리에 참여할 수 있다
+
+==== Initialization Callbacks
+
+. `org.springframework.beans.factory.InitializingBean`
+** Spring 에 대한 불필요하게 커플링이 생기므로 추천하진 않음
+. `@PostConstruct`
+** 여기서 메소드 `@Bean` 을 호출하면 circular reference 이슈가 발생함 (개인 경험)
+. `@Bean` 의 https://github.com/spring-projects/spring-framework/blob/cf2b1020f4251e0f2aee30d79c916d5d204e7e6b/spring-context/src/main/java/org/springframework/context/annotation/Bean.java#L257[`initMethod()`]
+** 근데 보통 쓰는 `@Component` 이런거에는 없는듯
+
+==== Destruction Callbacks
+
+. `org.springframework.beans.factory.DisposableBean`
+. `@PreDestroy`
+. `@Bean` 의 `destroyMethod()`
+. `destroy-method` 에 명시하여 auto-detect 되게 하기
+** `java.lang.AutoCloseable` or `java.io.Closeable` 등을 구현한 `close`, `shutdown`
+. `default-destroy-method` 를 설정 (https://github.com/spring-projects/spring-framework/blob/4f8516e2c3ca420b1608840ab901bf9df7e4d5f1/spring-beans/src/main/java/org/springframework/beans/factory/xml/BeanDefinitionParserDelegate.java[XML 에서만 제공되는 스펙인듯?])
+
+==== Combining Lifecycle Mechanisms
+
+* 인터페이스 구현
+* 커스텀한 init, destroy 지정
+* 어노테이션
+
+이름이 같으면 한 번만 수행, 이름이 다르면 아래와 같은 순서로 수행
+
+. 어노테이션
+. 인터페이스
+. 커스텀 메소드
+
+==== Startup and Shutdown Callbacks
+
+===== LifeCycle
+
+`Lifecycle` 인터페이스는 객체 자신의 lifecycle 요구사항을 가진 어떤 객체에서든지 필요한 기본 메소드들을 정의
+
+[source,java]
+----
+public interface Lifecycle {
+    void start();
+
+    void stop();
+
+    boolean isRunning();
+}
+----
+
+Spring 에서 관리되는 어떤 객체던지 `LifeCycle` 을 구현함 +
+`ApplicationContext` 에서 start/stop 을 받으면 인터페이스를 구현체들에 전파
+
+===== LifecycleProcessor
+
+`LifecycleProcessor` 는 refeshed, closed 이벤트를 추가로 받음
+
+[source,java]
+----
+public interface LifecycleProcessor extends Lifecycle {
+    void onRefresh();
+
+    void onClose();
+}
+----
+
+CAUTION: `Lifecycle` 은 start/stop 에 대한 내용이지 context refresh time 때 auto-startup 은 보장하지 않는다. 특정 bean 의 원만한 auto-startup 을 위해서는 `SmartLifecycle` 을 구현해야 한다 +
+stop notification 은 destruction 전에 오는 것이 보장되어 있지 않다. 일반적인 `LifeCycle` bean 은 general destruction callbacks 이 전파되기 전에 처음 stop notification 을 받는다. 하지만 context's lifetime 동안의 hot refresh 나 refresh 시도들이 멈춘 경우에는 destroy method 만 호출된다
+
+`context's lifetime 동안의 hot refresh 나 refresh 시도들이 멈춘 경우` ??
+
+===== Phased, SmartLifeCycle
+
+startup, shutdown 호출 순서는 중요하다
+
+[source,java]
+----
+public interface Phased {
+    int getPhase();
+}
+
+public interface SmartLifecycle extends Lifecycle, Phased {
+    boolean isAutoStartup();
+
+    void stop(Runnable callback);
+}
+----
+
+낮은 phase 가 먼저 시작하고, 역으로 높은 phase 먼저 죽는다
+
+일반 `LifeCycle` 의 default phase 값은 0 +
+음수로 지정하면 기본 컴포넌트들 보단 먼저 시작되어야 하고, 역으로 늦게 종료
+
+stop 에서 Runnable 받는건 shutdown 처리가 완료되고 수행된다 +
+필요한 경우 비동기 shutdown 을 가능하게 한다 +
+`DefaultLifecycleProcessor` 의 phase 당 shutdown timeout 은 30초 (https://github.com/spring-projects/spring-framework/blob/6c3a7192b726c96db7069ba3dd77bba91b999b23/spring-context/src/main/java/org/springframework/context/support/DefaultLifecycleProcessor.java#L234-L240[이거랑 비동기랑 뭔 상관이지])
+
+`LifecycleProcessor` 에서 `onClose` 하면 명시적으로 stop 이 호출된 것처럼 하지만 context 는 close 되는 중이다 +
+`onRefresh` (모든 객체가 인스턴스화되고 초기화 됐을 때) 는 callback 을 일으킨다. +
+`isAutoStartup` 이 true 이면 그 시점에 객체가 시작된다 (refresh 와 다르게 context start 는 표준 컨텍스트 구현에서는 자동적으로 일어나지 않는다.)
