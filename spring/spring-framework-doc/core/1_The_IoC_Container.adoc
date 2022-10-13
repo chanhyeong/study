@@ -632,3 +632,35 @@ stop 에서 Runnable 받는건 shutdown 처리가 완료되고 수행된다 +
 `LifecycleProcessor` 에서 `onClose` 하면 명시적으로 stop 이 호출된 것처럼 하지만 context 는 close 되는 중이다 +
 `onRefresh` (모든 객체가 인스턴스화되고 초기화 됐을 때) 는 callback 을 일으킨다. +
 `isAutoStartup` 이 true 이면 그 시점에 객체가 시작된다 (refresh 와 다르게 context start 는 표준 컨텍스트 구현에서는 자동적으로 일어나지 않는다.)
+
+==== Shutting Down the Spring IoC Container Gracefully in Non-Web Applications
+
+`non-web applications` 대상
+
+`ConfigurableApplicationContext#registerShutdownHook` 호출
+
+=== 1.6.2 `ApplicationContextAware` and `BeanNameAware`
+
+`ApplicationContextAware` 를 구현한 객체 인스턴스를 생성할 때 `ApplicationContext` 는 자신을 제공해준다 (물론 이렇게 안하고 autowiring 으로도 가져올 수 있음)
+
+* 사용 예
+** programmatic 하게 다른 bean 들을 꺼내올 때 (비추천)
+** file resource 접근, application event 발행, `MessageSource` 접근
+
+
+`BeanNameAware` 를 구현한 객체 인스턴스를 생성할 때 `ApplicationContext` 는 정의된 객체 인스턴스에 대한 이름을 제공해줌 +
+언제쓰나? - https://workerst.tistory.com/78[로그 메시지에 빈에 이름을 함께 기록해야 할 때처럼 빈의 이름이 필요한 경우 BeanNameAware인터페이스를 사용하면된다.]
+
+normal bean properties 가 population 된 후에 호출되고, initialization callback (afterPropertiesSet, init-method) 전에 호출됨
+
+=== 1.6.3. Other Aware Interfaces
+
+ApplicationContextAware, ApplicationEventPublisherAware, BeanClassLoaderAware, BeanFactoryAware, BeanNameAware, LoadTimeWeaverAware, MessageSourceAware, NotificationPublisherAware, ResourceLoaderAware, ServletConfigAware, ServletContextAware
+
+== 1.7. Bean Definition Inheritance
+
+child bean definition 은 parent 의 설정 데이터 (constructor arguments, property values, container-specific information (initialization method), a static factory method name, ...) 를 상속한다 +
+몇 가지를 override 할 수도 있고, 추가할 수도 있다
+
+child bean definition 은 `ChildBeanDefinition` 으로 표현된다. (이건 보통 쓸 일이 없고) +
+XML 에서 parent 명시하는거로 되긴 함
