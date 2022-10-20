@@ -664,3 +664,51 @@ child bean definition 은 parent 의 설정 데이터 (constructor arguments, pr
 
 child bean definition 은 `ChildBeanDefinition` 으로 표현된다. (이건 보통 쓸 일이 없고) +
 XML 에서 parent 명시하는거로 되긴 함
+
+== 1.8. Container Extension Points
+
+일반적으로는 애플리케이션 개발자는 `ApplicationContext` 를 구현할 필요가 없다. +
+대신 Spring IoC 컨테이너는 몇 가지 통합 인터페이스들로 확장될 수 있다
+
+=== 1.8.1. Customizing Beans by Using a `BeanPostProcessor`
+
+Spring container 의 instantiation 이 끝나고 호출될 instantiation logic, dependency resolution logic, 기타 등등의 커스텀 로직들을 구현 +
+Spring AOP 의 일부는 proxy-wrapping logic 을 제공하기 위해 이거로 구현된 것도 있다
+
+다수의 `BeanPostProcessor` 를 구현할 수 있으며 이 경우에는 `Ordered` 로 순서를 명시하는게 좋음 +
+그냥 `BeanPostProcessor` 구현하는거 자체만으로도 `Ordered` 명시는 고려해라
+
+NOTE: `BeanPostProcessor` 는 bean instance 위에서 동작한다 = bean 이 처음 생성 -> 그 후에 `BeanPostProcessor` 가 돈다 +
+`BeanPostProcessor` 는 컨테이너 당 존재한다 = 동일 계층의 컨테이너라도, 하나에서는 타고 하나에서는 안 탈 수 있다 +
+실제 bean 생성 자체를 건드려면 `BeanFactoryPostProcessor` 를 사용해야 한다
+
+initialization methods 전/후로 `BeanPostProcessor` 가 호출된다 +
+(postProcessBeforeInitialization -> afterPropertiesSet -> postProcessAfterInitialization)
+
+`ApplicationContext` 가 `BeanPostProcessor` 를 자동으로 찾는다. 다른 bean 들처럼 배포될 수 있다 (정의할 수 있다) +
+`@Bean` 으로 정의한 경우 `BeanPostProcessor` 타입으로 리턴 타입을 명시해야 한다. 그렇지 않으면 자동으로 등록되지 않는다
+
+`ConfigurableBeanFactory#addBeanPostProcessor` 로도 등록 가능 (registration 전에 conditional 로직을 넣어야 하거나, 계층 내의 컨텍스트들 간 copy 해야할 때)
+
+.`BeanPostProcessor` 와 AOP auto proxying
+****
+특별 취급
+
+`BeanPostProcessor` 와 그 직접 참조되는 bean 들은 `ApplicationContext` 의 특별한 startup phase 로 인스턴스화됨 +
+-> `BeanPostProcessor` 인스턴들이 순차적으로 등록되고 컨테이너 내 모든 bean 들에 적용됨
+
+`BeanPostProcessor` 자체로 AOP auto-proxying 이 구현되기 떄문에 +
+`BeanPostProcessor` 와 연관된 bean 둘 다 auto-proxying 대상으로는 적합하지 않으며 연관되어 aspect 를 갖지 않는다
+****
+
+=== 1.8.2. Customizing Configuration Metadata with a `BeanFactoryPostProcessor`
+
+`BeanFactoryPostProcessor` 는 configuration metadata 위에서 논다 +
+\= Spring IoC container 가 metadata 를 이거에게 읽을 수 있게 하고 잠재적으로는 (컨테이너가 bean 인스턴스화 하기 전에) 변경할 수도 있게 함
+
+위와 마찬가지로 다수를 등록할 수 있고 Ordered.
+
+NOTE: 실제 bean 을 변경하고 싶다면 위에 말한 `BeanPostProcessor` 사용 +
+`BeanFactoryPostProcessor` 내에서 bean 인스턴스를 다룰 수는 있지만, 조기에 bean 인스턴스화가 되고, 표준 컨테이너 라이프사이클을 위반함 -> 부작용이 발생 ex. bean post processing 을 지나칠 수 있음 +
+ +
+위와 같이 컨테이너 당 존재
