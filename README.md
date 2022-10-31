@@ -44,7 +44,7 @@
 - https://refactoring.com/
 - toc en: https://www.oreilly.com/library/view/refactoring-improving-the/9780134757681//
 
-### Extreme Programming
+### Extreme Programming (2022/10)
 - https://www.oreilly.com/library/view/extreme-programming-explained/0321278658/
 
 ---
