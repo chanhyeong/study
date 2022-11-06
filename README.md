@@ -27,7 +27,7 @@
 - Spring in Action 5th edition (2021/09 ~ 10)
 - Mastering Spring 5.0, ...
 - [official docs](https://docs.spring.io/spring-framework/docs/current/reference/html/)
-    - core (2022/10 ~)
+    - core (2022/10, suspend)
 
 ### Cloud native patterns (2021/12 ~ suspend)
 - Cloud native patterns
@@ -47,6 +47,13 @@
 ### Extreme Programming (2022/10)
 - https://www.oreilly.com/library/view/extreme-programming-explained/0321278658/
 
+### Test
+
+- Unit Testing (2022/11 ~ )
+    - https://www.manning.com/books/unit-testing
+- Practical Unit Test using Java & JUnit (2022/11 ~ )
+    - http://www.yes24.com/Product/Goods/75189146
+
 ---
 
 ## Subject pool
@@ -54,5 +61,7 @@ lucene (lucene in action)
 netty (netty in action)  
 nginx  
 java (Optimizing Java)
-oop  
+oop
+compiler
+clean architecture
 ...
