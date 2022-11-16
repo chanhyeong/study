@@ -60,8 +60,8 @@
 lucene (lucene in action)  
 netty (netty in action)  
 nginx  
-java (Optimizing Java)
-oop
-compiler
-clean architecture
+java (Optimizing Java)  
+oop  
+compiler  
+clean architecture  
 ...
