@@ -51,7 +51,7 @@
 
 - Unit Testing (2022/11 ~ )
     - https://www.manning.com/books/unit-testing
-- Practical Unit Test using Java & JUnit (2022/11 ~ )
+- Pragmatic Unit Testing in Java with JUnit (2022/11 ~ 12)
     - http://www.yes24.com/Product/Goods/75189146
 
 ---
