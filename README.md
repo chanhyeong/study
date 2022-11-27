@@ -51,17 +51,23 @@
 
 - Unit Testing (2022/11 ~ )
     - https://www.manning.com/books/unit-testing
-- Pragmatic Unit Testing in Java with JUnit (2022/11 ~ 12)
+- Pragmatic Unit Testing in Java 8 with JUnit (2022/11 ~ 12)
     - http://www.yes24.com/Product/Goods/75189146
+    - toc en: https://www.oreilly.com/library/view/pragmatic-unit-testing/9781680500769/
 
 ---
 
 ## Subject pool
-lucene (lucene in action)  
+
 netty (netty in action)  
 nginx  
-java (Optimizing Java)  
+java (Optimizing Java, parallel programming)  
 oop  
 compiler  
 clean architecture  
+
+### suspended
+
+Spring, Cloud native patterns, EIP
+
 ...
