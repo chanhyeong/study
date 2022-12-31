@@ -49,11 +49,13 @@
 
 ### Test
 
-- Unit Testing (2022/11 ~ )
+- Unit Testing (2022/11 ~ 2023/01)
     - https://www.manning.com/books/unit-testing
 - Pragmatic Unit Testing in Java 8 with JUnit (2022/11 ~ 12)
     - http://www.yes24.com/Product/Goods/75189146
     - toc en: https://www.oreilly.com/library/view/pragmatic-unit-testing/9781680500769/
+- Test Driven Development: By Example (2023/01 ~)
+    - https://www.oreilly.com/library/view/test-driven-development/0321146530/
 
 ---
 
