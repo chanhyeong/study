@@ -1,0 +1,82 @@
+== 5. 솔직히 말하자면
+
+(franc-ly speaking)
+
+"$5 + 10CHF = $10" 을 구현하기 전에 +
+"5CHF * 2 = 10CHF" 를 먼저 구현
+
+프랑 (Franc) 을 표현하는 객체를 만들어보자 +
+Dollar 를 그대로 복사해서 우선 해결
+
+=== 여기까지 한 것
+
+* 큰 테스트를 공략할 수 없다
+* 중복을 만들고 조금 고쳐서 테스트 작성
+* 모델 코드까지 그대로 복사 수정하여 테스트 통과
+* 중복이 남아있음
+
+== 6. 돌아온 모두를 위한 평등
+
+(equality for all, redux)
+
+Dollar, Franc 클래스의 상위 공통으로 Money 를 도출하고 인스턴스 변수 이동 & equals 이동
+
+(단위 테스트 책에서 인터페이스는 발명이 아닌 발견되는거라고 있었는데, 이게 그 예시인듯)
+
+[source,java]
+----
+public Money {
+    private int amount;
+
+    public boolean equals(Object object) {
+        Money money = (Money) object;
+        return amount == money.amount;
+    }
+}
+----
+
+=== 여기까지 한 것
+
+* 공통된 코드를 Dollar 에서 상위 클래스 Money 로 단계적으로 이동
+* Franc 도 Money 의 하위 클래스로 변환
+* equals() 구현 일치
+
+== 7. 사과와 오렌지
+
+(apples and oranges)
+
+Franc 과 Dollar 를 비교하면? (두 개를 비교하는 테스트 추가) -> 지금은 불가능 +
+두 객체의 클래스를 비교하여 검사 수행
+
+[source,java]
+----
+public boolean equals(Object object) {
+    Money money = (Money) object;
+    return amount == money.amount
+        && getClass().equals(money.getClass());
+}
+----
+
+=== 여기까지 한 것
+
+* 결함을 테스트에 담아 냈다
+* 완벽하진 않지만 그나마의 방법으로 테스트를 통과하게 만듦
+
+== 8. 객체 만들기
+
+(makin' objects)
+
+times() 의 구현이 거의 같음
+
+* static factory method 추가 (return type Dollar)
+* times 구현을 Money 에 abstract 로 추가
+* return type Money 로 변경
+
+times 는 아직 중복인 상태
+
+=== 여기까지 한 것
+
+* times 의 method signature 를 통일
+* 메소드 선언부를 superclass 로 옮김
+* factory methdo 를 도입하여 하위 클래스의 존재 사실을 분리
+* 하위 클래스가 사라지면 몇몇 테스트는 불필요한다는 것 인식 -> 일단 그대로 유지
