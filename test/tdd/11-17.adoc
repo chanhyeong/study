@@ -1,0 +1,147 @@
+== 11. 모든 악의 근원
+
+하위 클래스를 제거
+
+=== 여기까지 한 것
+
+* 하위 클래스 속을 들어내는 것을 완료, 하위 클래스 삭제
+* 새로운 구조에서는 필요없는 테스트 제거
+
+== 12. 드디어, 더하기
+
+아직 해결되지 않은 항목들을 새 목록에 추가
+
+객체가 원하는 방식으로 동작하지 않을 경우? +
+-> 그 객체와 외부 프로토콜이 같으면서, 내부 구현은 다른 새로운 객체 (imposter) 를 만듦
+
+책에서는 Money 와 비슷하지만 Money 의 합을 나타내는 객체 만들기 +
+수식의 결과를 Expression (단일 통화) 으로 축약 = reduced
+
+[source,java]
+----
+public void testSimpleAddition() {
+    Money five = Money.dollar(5);
+    Expression sum = five.plus(five);
+    Bank bank = new Bank();
+    Money reduced = bank.reduce(sum, "USD");
+    assertEquals(Money.dollar(10), reduced);
+}
+----
+
+=== 여기까지 한 것
+
+* 큰 테스트를 작은 테스트로 줄여서 발전
+* 필요한 계산에 대한 은유들을 생각 -> 도출 -> 테스트 재작성
+
+== 13. 진짜로 만들기
+
+가짜 구현을 진짜로 만들기 -> Sum 도입
+
+=== 여기까지 한 것
+
+* 중복 제거, 구현
+* Sum 의 생성을 강요하기 위한 테스트 작성
+* 우선 한 곳에서 캐스팅, 테스트가 들어간 후 코드를 적당한 자리로 이동
+* 다형성 이용
+
+== 14. 바꾸기
+
+reduce 에서 통화 변환 수용
+
+=== 여기까지 한 것
+
+* argument 추가
+* 코드, 테스트에 존재하는 데이터 중복 추출
+* 테스트 없이 private helper (Pair) 클래스 생성
+
+== 15. 서로 다른 통화 더하기
+
+[source,java]
+----
+public void testMixedAddition() {
+    Expression fiveBucks = Money.dollar(5);
+    Expression tenFrancs = Money.franc(10);
+    Bank bank = new Bank();
+    bank.addRate("CHF", "USD", 2);
+    Money result = bank.reduce(fiveBucks.plus(tenFrancs), "USD");
+    assertEquals(Money.dollar(10), result);
+}
+----
+
+=== 여기까지 한 것
+
+* 원하는 테스트 작성
+* 추상적인 선언으로 가지에서 뿌리로 일반화
+* 변경 후 영향을 받은 부분들을 컴파일러의 지시에 따름
+
+== 16. 드디어, 추상화
+
+[source,java]
+----
+public void testSumPlusMoney() {
+    Expression fiveBucks = Money.dollar(5);
+    Expression tenFrancs = Money.franc(10);
+    Bank bank = new Bank();
+    bank.addRate("CHF", "USD", 2);
+    Expression sum = new Sum(fiveBucks, tenFrancs).plus(fiveBucks);
+    Money result = bank.reduce(sum, "USD");
+    assertEquals(Money.dollar(15), result);
+}
+----
+
+TDD 로 구현할 땐 테스트 코드와 모델 코드의 라인 수가 거의 비슷하게 끝난다
+
+[quote]
+TDD 가 경제적이기 위해서는 매일 만들어 내는 코드의 줄 수가 두 배가 되거나, 동일한 기능을 구현하되 절반의 줄 수로 해내야 한다 +
+TDD 가 현재 방법에 비해 어떻게 다른지 측정해야 할 것 - 디버깅, 통합 작업, 설명 시간 등
+
+=== 여기까지 한 것
+
+* 미래에 읽을 다른 사람들을 염두하여 테스트 작성
+* TDD 와 현재 스타일을 비교할 방법 제시
+* 선언부에 대한 수정을 컴파일러의 조언을 따라 수정
+
+== 17. Money 회고
+
+=== 다음에 할 일?
+
+중복 제거, 다른 도구의 도움을 받아 개선, 어떤 테스트들이 더 필요할지 고민, todo list 가 빌 때 설계한 것을 검토
+
+=== 메타포
+
+설계 구조에 미치는 메타포의 엄청난 영향
+
+=== JUnit 사용도
+
+로그를 기록하게 하여 히스토그램으로 확인
+
+=== 코드 메트릭스
+
+클래스, 함수, 라인, 복잡도, 함수 당 라인 등의 통계
+
+=== 프로세스
+
+TDD 의 주기
+
+* 작은 테스트 추가
+* 모든 테스트 실행 -> 실패 확인
+* 코드 변화
+* 모든 테스트 실행 -> 성공
+* 중복 제거 리팩토링
+
+=== 테스트의 질
+
+TDD 의 테스트는 유지되어야 하지만, 다른 종류의 테스트 (성능, 스트레스, 사용성) 를 대체할 수 있을 것이라 예상하면 안된다
+
+TDD 결함이 낮다면 "의사소통의 증폭기에 가까운" 무언가가 될 것
+
+* statement coverage: 테스트 질에 대한 평가 기준은 될 수 없음, but 시작점
+* defect insertion: 코드의 의미를 바꾼 후에 테스트가 실패하는지 확인
+** Jester 등으로 확인 가능
+
+=== 최종 검토
+
+* 테스트를 확실히 돌아가게 만드는 세 가지 접근 법: 가짜로 구현, 삼각측량법, 명백하게 구현
+** (가짜로 구현은 mock API 만들어 주는 것도 비슷한거 같다)
+* 설계를 주도하기 위한 방법으로 테스트 코드와 실제 코드 사이의 중복을 제거
+* 안 좋을 땐 속도를 줄이고, 좋으면 속도를 높이는. 테스트 사이 간격을 조절
