@@ -67,6 +67,7 @@ java (Optimizing Java, parallel programming)
 oop  
 compiler  
 clean architecture  
+working effectively with legacy code  
 
 ### suspended
 
