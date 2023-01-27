@@ -1,6 +1,6 @@
 # study
 
-### Langauge
+### Language
 
 - Kotlin In Action (2021/01)
   - livebook: https://livebook.manning.com/book/kotlin-in-action
