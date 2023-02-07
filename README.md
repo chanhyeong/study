@@ -6,6 +6,7 @@
   - livebook: https://livebook.manning.com/book/kotlin-in-action
 - Java 9 Modularity (2023/02 ~)
   - https://www.oreilly.com/library/view/java-9-modularity/9781491954157/
+  - https://github.com/java9-modularity/examples
 
 ### http (2021/02 ~ 04)
 
