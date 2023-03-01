@@ -96,7 +96,7 @@ Log-Structured Merge-Tree
 
 LSM 저장소 엔진: 정렬된 파일 병합과 compaction 원리를 기반으로 하는 저장소 엔진
 
-?
+random access write 를 쳬게적으로 디스크에 순차 쓰기로 바꾼 것 (p106 정리)
 
 ==== 성능 최적화
 
