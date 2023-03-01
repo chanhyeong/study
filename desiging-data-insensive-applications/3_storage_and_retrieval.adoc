@@ -1,0 +1,359 @@
+= 3. 저장소와 검색
+
+DB 가 데이터를 저장하는 방법, 데이터를 요청했을 때 다시 찾을 수 있는 방법
+
+애플리케이션 개발자가 여러 저장소 엔진 중 애플리케이션에 적합한 엔진을 선택하는 작업이 필요 +
+= 특정 workload 유형에서 좋은 성능을 내려면 엔진이 내부에서 수행되는 작업에 대해 대략적인 개념을 이해할 필요
+
+트랜적션 workload / 분석 에 맞추어 최적화된 엔진 간에는 큰 차이가 있다 (93p)
+
+RDB, NoSQL, log-structured 계열, page-oriented 계열..
+
+== DB 를 강력하게 만드는 데이터 구조
+
+많은 DB 는 append-only 데이터 파일인 **log**를 사용한다
+
+**index**: DB 에서 특정 키의 값을 효울적으로 찾기 위한 데이터 구조 - 부가적인 메타데이터를 유지 +
+
+index 의 특징
+
+* 기본 데이터에서 파생된 추가적인 구조, DB 내용에는 영향이 없다
+* query 성능에 영향, 유지보수 시 write 과정에서 오버해드 (write 성능을 느리게 만든다 - index 갱신)
+
+=== Hash Index
+
+key-value 데이터 인덱스
+
+key 를 데이터 파일의 바이트 오프셋에 매핑, 인메모리 해시 맵을 유지하는 전략
+
+예시로 Bitcask, 각 key 의 value 가 자주 갱신되는 상황에 적합 (동영상 별 조회수 등)
+
+파일에 항상 추가만 하면 디스크 공간이 부족 - 특정 크기의 segment 로 로그를 나누기 +
+segment 별로 compaction (로그에서 중복된 키를 버리고 각 키의 최신 갱신 값만 유지) 수행
+
+. compaction 은 백그라운드 스레드에서 수행
+. 수행하는 동안 이전 segment 파일을 사용하여 읽기와 쓰기 요청 처리
+. 끝나면 새로 병합한 segment 를 이용하도록 전환
+. 전환 후 이전 segment 파일 삭제
+
+==== 고려 사항들
+
+* 파일 형식: csv 보단 binary
+* 레코드 삭제: 데이터 파일에 특수한 삭제 레코드 (tombstone) 을 추가. 병합 시 tombstone 은 무시
+* 고장 (Crash) 복구: 재시작 시 인메모리 해시 맵 손실
+* 부분적으로 레코드 쓰기: 로그에 레코드를 추가하는 도중에도 죽을 수 있음.
+* 동시성 제어: write 를 순차적으로 로그에 추가할 때, segment 는 append-only 이거나 immutable 이므로 다중 스레드로 동시에 read 할 수 있음
+
+예전 값을 새로운 값으로 덮어써서 정해진 자리에 갱신하는 방법보다, append-only 가 좋은 이유
+
+* append 와 segement 병합은 순차적인 write = 무작위 write 보다 빠르다
+* segment 파일이 append-only 나 immutable 이면 동시성과 고장 복구가 훨씬 간단하다
+* segment 병합은 조각화되는 데이터 파일 문제를 피할 수 있다
+
+==== 제한 사항
+
+* 메모리에 저장해야 하므로 키가 너무 많으면 비용 문제
+* range query 에 효율적이지 않음
+
+=== SS Table 과 LSM Tree
+
+key-value 를 key 로 정렬하는 요구사항 추가 - Sorted String Table +
+각 key 는 segment 파일 내에 한 번만 나타나야 한다
+
+SS Table 이 Hash index 보다 장점들
+
+. segment 병합은 파일이 사용 가능한 메모리보다 크더라도 간단하고 효율적
+** 입력 파일을 읽고 각 파일의 첫 번째 key 를 본다
+** 낮은 key 를 출력 파일로 복사하고 반복
+** 동일한 key 가 있다면 가장 최근 값 유지, 오래된 값은 버림
+. 파일에서 특정 key 를 찾기 위해 메모리에 모든 key 의 index 를 유지할 필요가 없다
+** key 의 offset 만 알면 된다
+. 읽기 요청은 여러 key-value 쌍을 스캔해야 하기 때문에 해당 레코드들을 블록으로 그룹화, 디스크에 쓰기 전에 압축
+** 디스크 공간 및 I/O 대역폭 사용 절약
+
+==== SS Table 생성과 유지
+
+정렬된 구조를 메모리에 유지. red-black tree, AVL tree 등 +
+임의 순서로 key 를 삽입하고 정렬된 순서로 다시 읽을 수 있음
+
+* write 인입: 인메모리 balanced tree 데이터 구조에 추가 (memtable 이라고도 함)
+* memtable 이 임계값보다 커지면 디스크에 기록 - 파일은 DB 의 가장 최신 segment 가 된다
+** 기록하는 동안 write 는 새로운 memtable 인스턴스에 기록
+* read 인입: memtable 에서 key 를 찾고, 디스크 상의 가장 최신 segment 에서 찾음. 없으면 2번째, 3번째, ...
+* 가끔 segment 파일 병합하고 compaction 과정을 수행 - 백그라운드
+
+DB 가 고장나면 디스크로 기록되지 않고 memtable 에 있는 가장 최신 write 손실 +
+매번 write 를 즉시 추가할 수 있게 분리된 로그를 디스크 상에 유지
+
+로그는 memtable 을 복원할 때만 필요하기 때문에 순서가 정렬되지 않아도 문제되지 않음 +
+memtable 을 SS Table 로 기록하고 나면 버릴 수 있는 로그
+
+==== SS Table 에서 LSM Tree 만들기
+
+Log-Structured Merge-Tree
+
+로그 구조화 병합 트리
+
+LSM 저장소 엔진: 정렬된 파일 병합과 compaction 원리를 기반으로 하는 저장소 엔진
+
+?
+
+==== 성능 최적화
+
+LSM Tree 알고리즘은 DB 에 존재하지 않는 키를 찾을 때 느릴 수 있다 +
+bloom filter 를 추가적으로 사용 (집합 내용을 근사한 데이터 구조)
+
+SS Table 을 압축하고 병합하는 순서와 시기를 정하는 전략들
+
+* sized-tiered: 작은 SS Table -> 큰 데로 병합
+* leveled compaction: key 범위를 더 작게 나누고 오래된 데이터는 개별 level 로 이동
+
+LSM Tree 의 기본 개념: 백그라운드에서 연쇄적으로 SS Table 을 지속적으로 병합
+
+==== B tree
+
+SS Table 과 같이 key 로 정렬된 key-value 쌍을 유지 -> key-value 검색 및 range query 에 효율적
+
+LS index 는 DB 를 수 MB 이상의 가변 크키를 가진 segment 로 나누고 순차적으로 segment 기록 +
+B tree 는 4KB 의 fixed-size block or page 로 나누고 한 번에 하나의 페이지에 R/W
+
+p82 그림 3-6. tree index 를 이용한 key 검색
+
+한 페이지는 B tree 의 root 로 지정, index 에서 key 를 찾으려면 root 에서 시작 +
+최종적으로는 개별 key (leaf page) 를 포함하는 페이지에 도달 (값 or 값을 찾을 수 있는 page ref)
+
+분기 계수 (branching factor): B tree 의 한 페이지에서 하위 페이지를 참조하는 수
+
+value 를 갱신하려면 -> key 의 leaf page 를 검색하고, page 의 값을 바꾼 다음 page 를 디스크에 다시 기록 +
+key 를 추가하려면 -> 새로운 key 를 포함하는 범위의 page 를 찾아 해당 page 에 key, value 를 추가 +
+공간이 없다면 하나의 page 를 반쯤 채워진 page 둘로 나누고 상위 페이지가 새로운 key 범위의 하위 부분들을 알 수 있게 갱신 (그림 3-7)
+
+tree 가 계속 균형을 유지하는 것을 보장
+
+대부분의 DB 는 B tree 의 깊이가 3 or 4 (branching factor 500 의 4KB page 의 4단계 = 256TB)
+
+==== 신뢰할 수 있는 B tree 만들기
+
+LS index 는 파일에 추가만 한다 +
+B tree 는 덮어 쓴다
+
+DB 가 고장 상황에서 스스로 복구할 수 있게 write-ahead log (WAL) (redo log) 라는 데이터 구조를 추가해 B tree 구현 +
+tree page 의 변경 사항을 기록하는 append-only 파일
+
+멀티 스레드에서 B tree 접근 시 latch (가벼운 lock) 를 통해 동시성 제어
+
+==== B tree 최적화
+
+* 쓰기 시 복사 방식 (copy-on-write scheme) 사용 (page 덮어 쓰기와 고장 복구를 위한 WAL 유지 대신)
+** 변경된 page 는 다른 위치에 기록, tree 의 상위 page 에 새로운 버전을 만들어 새로운 위치를 가리키게 함 (p236 스냅샷 격리와 반복 읽기. 예정)
+* page 에 key 를 축약해 사용 (B+ tree, 일반적임)
+* key range 의 상당 부분을 스캔해야 한다면, leaf page 를 디스크 상에 연속된 순서로 나타나게 tree 를 배치하려고 시도
+* tree 애 포인터 추가
+** 각 leaf page 가 양 쪽 형제 페이지에 대한 참조 - 상위 page 로 다시 이동하지 않아도 순서대로 key 스캔
+* fractal tree (B tree 변형): 디스크 찾기를 줄이기 위해 LS 개념을 일부 빌림
+
+==== B tree 와 LSM tree 비교
+
+LSM tree 는 write 에서 빠르고, B tree 는 read 에서 빠르다
+
+read 시 LSM 은 compaction level 에 있는 여러 가지 데이터 구조와 SS Table 을 확인해야 한다
+
+==== LSM tree 의 장점
+
+B tree index 는 모든 데이터 조각을 최소 두 번 기록해야 한다 (WAL, tree page) +
+LS index 또한 SS Table 의 반복된 compaction 과 병합으로 인해 여러 번 데이터를 다시 쓴다
+
+LSM tree 가 상대적으로 쓰기 증폭이 더 낮고 순차적으로 compaction 된 SS Table 파일을 쓰기 때문에 **write 처리량이 더 높게 유지된다**
+
+**압축률이 더 좋다** +
+주기적으로 파편화를 없애기 위해 SS Table 을 다시 기록하기 때문에 저장소 오버헤드가 낮다
+
+==== LSM tree 의 단점
+
+compaction 과정이 **진행 중인 R/W 성능에 영향을 준다** - 디스크 자원의 한계
+
+**높은 쓰기 처리량** - 공유되는 디스크 쓰기 대역폭 +
+compaction 이 유입 쓰기 속도를 따라가지 못함 -> 디스크 상에 병합되지 않은 segment 수가 증가 -> 더 많은 segment 파일을 확인해야 하기 때문에 읽기 또한 느려짐
+
+**같은 key 의 다중 복사본이 존재할 수 있다**
+
+새로운 데이터 저장소에서는 LS index 가 더 인기를 얻고 있는 중이다
+
+=== 기타 색인 구조
+
+key-value index 의 대표적으로 primary index
+
+secondary index 를 사용하는 것도 일반적 - key 가 고유하지 않음
+
+==== index 안에 값 저장하기
+
+index 에서 key 는 질의가 검색하는 대상이지만 value 는 질의의 실제 row or 다른 곳에 저장된 row ref (heap file)
+
+heap file 접근은 여러 secondary index 가 있을 때 데이터 중복을 피할 수 있어 일반적 +
+각 index 는 위체만 참조, 실제 데이터는 고정 유지
+
+index 에서 heap file 로 다시 이동하는게 읽기 성능에 불이익 -> index 안에 바로 색인된 row 를 넣기도 = **clustered index** +
+MySQL InnoDB PK 는 언제나 clustered index, secondary index 는 PK 를 참조한다
+
+clustered index, non-clustered index 의 중간 = covering index, index with included column +
+index 안에 테이블 컬럼 일부를 저장 -> index 만을 사용해 일부 질의에 응답 가능
+
+transaction 보장을 강화하기 위해 별도의 노력이 필요
+
+==== multi-column index
+
+concatenated index: 하나의 컬럼에 다른 컬럼을 추가하는 방식 (순서는 index 정의에 명시)
+
+multidimensional index: 한 번에 여러 컬럼에 질의 - 특히 지리 공간 데이터에 중요하게 사용 +
+R tree
+
+==== Full-text search, fuzzy index
+
+fuzzy (애매모호한): 정확하지 않고 유사한 key
+
+lucene 은 특정 edit distance 내 단어를 검색할 수 있다
+
+==== 모든 것을 메모리에 보관
+
+inmemory db
+
+memcached 등 일부 인메모리 key-value 저장소는 재시작되면 데이터 손실을 허용하는 캐시 용도
+
+지속성을 목표로 하는 경우 특수 하드웨어 or 디스크에 변경 사항의 로그 기록 or 디스크에 주기적인 스냅샷 기록 or 다른 장비에 인메모리 상태 복제
+
+특수 하드웨어가 없다면 재시작 시 디스크나 네트워크를 통해 복제본에서 상태를 다시 적재
+
+VoltDB, MemSQL, Oracle TimesTen: RDB 모델의 인메모리 DB +
+RAMCloud: 지속성 있는 오픈소스 인메모리 key-value 저장소 +
+Redis, Couchbase 는 비동기로 디스크 기록, 약한 지속성
+
+인메모리 DB 는 다양한 데이터 모델을 제공하기도 +
+Redis: priority queue, set, ...
+
+anti-caching: 메모리가 충분하지 않을 때, LRU 데이터를 메모리에서 디스크로 내보내고, 다시 접근할 때 메모리로 적재
+
+non-volitable memory (NVM) 기술이 채택되면 저장소 엔진 설계 변경이 필요할 것
+
+== 트랜잭션 처리나 분석?
+
+트랜잭션: 논리 단위 형태로써 읽기와 쓰기 그룹 +
+트랜잭션 처리: 지연 시간이 낮은 읽기와 쓰기를 가능하게 한다는 의미
+
+**OLTP (online transaction processing, OLTP)** +
+애플리케이션이 index 를 사용해 일부 key 에 대한 적은 수로 레코드를 찾음 +
+레코드는 사용자 입력 기반으로 insert/update
+
+**OLAP (online analytic processing, OLAP)**
+데이터 분석은 원시 데이터가 아닌 많은 수의 레코드를 스캔해 일부 컬럼만 읽어서 집계 통계 게산 +
+더 나은 의사결정을 내릴 수 있게 끔 비즈니스 분석가가 보고서를 (business intelligence) 를 제공
+
+OLAP 용으로 데이터베이스 분석을 수행 - data warehouse
+
+=== 데이터 웨어하우징
+
+OLTP DB 에 즉석 분석 질의 (ad hoc analytic query) 를 실행하는 것을 꺼림
+
+data warehouse = OLTP 작업에 영향을 주지 않는 개별 DB, OLTP 시스템의 Read only 복사본 +
+OLTP DB 에서 주기적인 덤프 or 지속적인 스트림을 통해 추출, 변환, 적재 (extract, transform, load. ETL)
+
+장점 - 분석 접근 패턴에 맞게 최적화 할 수 있다
+
+=== OLTP DB 와 데이터 웨어하우스의 차이점
+
+data warehouse 의 데이터 모델은 가장 일반적인 관계형 모델을 사용 +
+SQL 질의를 생성, 결과 시각화, 분석가가 (drill-down, slicing, dicing) 데이터를 탐색할 수 있게 해주는 분석 도구.
+
+둘 다 SQL 을 쓰지만 각각 다른 질의 패턴에 맞게 최적화되어 시스템 내부는 다르다 +
+트랜잭션 처리 or 분석 workload 둘 중 하나를 지원하는데 중점
+
+Teredata, Vertica, SAP HANA, ParAccel: 비싼 상용 라이선스 +
+Amazon Redshift: ParAccel 의 운영 버전
+
+SQL-on-Hadoop: Apache Hive, Spark SQL, Cloudera Impala, Facebook Fresto, Apaceh Tajo, Apache Drill
+
+=== 분석용 스키마: star schema, snowflake schema
+
+==== star schema
+
+fact table: 특정 시각에 발생한 개별 이벤트 +
+dimension table: who, when, where, what, how, why 를 담음
+
+테이블 관계가 시각화될 때 fact table 이 가운데에 있고 dimension table 로 둘러싸고 있다는 사실 +
+테이블 간 연결 = 별의 광선
+
+==== snowflake schema
+
+dimension 이 하위 dimension 으로 더 세분화 (= star schema 보다 더 정규화)
+
+== 컬럼 지향 저장소
+
+특정 컬럼들에만 접근하는 질의를 어떻게 효율적으로 실행할 수 있을지?
+
+대부분의 OLTP DB 에서 row-oriented 로 데이터를 배치 +
+index 로 위치를 찾아 디스크에서 모든 row 를 메모리로 적재, 다음 구문 해석하여 필요하지 않은 row 필터링
+
+column-oriented 에서는 모든 값을 하나의 row 에 함께 저장하지 않고 각 컬럼별로 모든 값을 함께 저장 (각 컬럼을 개별 파일에 저장) +
+질의에 사용되는 컬럼만 읽고 구분 분석
+
+=== 컬럼 압축
+
+데이터를 압축하면 디스크 처리량을 더 줄일 수 있다
+
+bitmap encoding (p101 그림 3-11)
+
+컬럼 패밀리 라는 개념은 row key 와 row 의 모든 컬럼을 저장하며 압축을 사용하지 않음 (여전히 row-oriented)
+
+==== 메모리 대역폭과 벡터화 처리
+
+data warehouse 쿼리는 디스크로부터 메모리로 데이터를 가져오는 대역폭이 큰 병목 +
+메인 메모리에서 CPU cache 로 가는 대역폭을 효율적으로 사용, CPU 명령 처리 파이프라인에서 분기 예측 실패와 버블을 피하며 최신 CPU 에서 SIMD 명령을 사용하게 끔 신경 써야 한다
+
+컬럼 저장소 배치는 CPU cycle 을 효율적으로 사용하기에 적합 +
+쿼리 엔진은 압축된 컬럼 데이터를 CPU L1 캐시에 딱 맞게 가져오고, (함수 호출이 없는) tight loop 에서 반복
+
+vertorized processing: 비트 AND, OR 연산자는 압축된 컬럼 데이터 덩어리를 바로 연산
+
+=== 컬럼 저장소의 순서 정렬
+
+(????)
+
+테이블에서 정렬해야 하는 컬럼을 선택 - 1차 정렬 key
+
+정렬된 순서 -> 컬럼 압축에 도움. 같은 값이 연속해서 길게 반복되므로
+
+==== 다양한 순서 정렬
+
+같은 데이터를 다양항 방식으로 정렬 +
+복제 데이터를 서로 다른 방식으로 정렬해서 저장하면, 질의 처리 시 질의 패턴에 가장 적합한 버전 사용 가능
+
+row-oriented 저장에서는 한 곳에 모든 row 유지, 2차 index 는 일치하는 row 를 가리키는 포인터만 포함 +
+column-oriented 에서는 데이터를 가리키는 포인터가 없고, 값을 포함한 컬럼만 존재
+
+=== 컬럼 지향 저장소에 쓰기
+
+컬럼 지향 저장소, 압축, 정렬은 read 는 더 빠르게 돕지만 write 는 어렵게 한다
+
+update-in-place 접근 방식은 압축된 컬럼에서는 불가능 +
+정렬된 테이블의 중간에 row insert 시 모든 컬럼 파일 재작성 필요
+
+LSM tree 로 해결 - 모든 write 는 인메모리 저장소로 이동해 정렬된 구조에 추가, 디스크에 쓸 준비 +
+충분한 write 를 모으면 디스크의 컬럼 파일에 병합, 대량으로 새로운 파일에 기록
+
+질의는 디스크 컬럼 데이터, 메모리 최근 쓰기를 모두 조사하여 두 가지르 ㄹ결합
+
+=== 집계: Data Cube 와 Materialized view
+
+materialized aggregate: 질의가 자주 사용하는 일부 카운트나 합을 캐시하는 전략
+
+materialized view: 관계형 데이터 모델에서 표준 (가상) 뷰로 정의 +
+디스크에 기록된 질의 결과의 실제 복사본. +
+virtual view 는 단지 질의를 작성하는 단축키
+
+원본 데이터를 변경하면 materialized view 를 갱신해야 함 - DB 에서 자동으로 수행될 수 있음 +
+OLTP 에서는 갱신으로 인한 write 비용이 비싸서 자주 사용하진 않음 +
+data warehouse 에서는 읽기 비중이 크기 때문에 합리적
+
+data cube (OLAP cuve) 는 특별한 materialized view (그림 3-12)
+
+data cube 는 특정 질의를 효과적으로 미리 계산했기 때문에 해당 질의 수행 시 매우 빠르다 +
+단점은 원시 데이터에 질의할 때의 유연성이 없다
