@@ -99,3 +99,145 @@ schema evolution: 스키마가 시간이 지남에 따라 변함
 (예전 코드에서는 기록되지 않으므로 깨진다)
 
 필드는 optional 필드만 삭제할 수 있고, 같은 태그 번호는 절대 다시 사용할 수 없다
+
+==== 데이터타입과 스키마 발전
+
+데이터타입 변경은 값이 정확하지 않거나 잘릴 위험
+
+protobuf 의 repeated: 목록, 배열 +
+optional (단일 값) -> repeated (다중 값) 로 변경해도 문제가 없다 +
+읽는 코드에서 마지막 엘리먼트만 봄
+
+thrfit 의 전용 목록 데이터타입: 목록 엘리먼트의 데이터 타입을 매개변수로 받는다 (패스)
+
+=== Avro
+
+thrift 가 hadoop 의 사용 사례에 적합하지 않아 시작
+
+.두 개의 스키마 언어
+[code]
+----
+// Avro IDL
+record Person {
+    string          userName;
+    union { null, long } favoriteNumber = null;
+    array<string>   interests;
+}
+
+// JSON
+{
+    "type": "record",
+    "name": "Person",
+    "fields": [
+        {"name": "userName", "type": "string"},
+        ...
+    ]
+}
+----
+
+그림 4-5. 길이 + UTF-8 바이트, ...
+
+binary data 파싱: 스키마에 나타난 순서대로 필드를 보고 데이터타입을 미리 파악 +
+(필드나 데이터타입을 식별하기 위한 정보가 없음, 단순 연결된 값)
+
+==== writer's schema, reader's schema
+
+* writer's schema: 외부로 전송 - 알고 있는 스키마 버전을 사용해 데이터 부호화
+* reader's schema: 외부로부터 수신 - 특정 스키마로 복호화
+
+writer/reader 가 동일하지 않아도 되며 호환만 가능하면 된다는 개념
+
+Avro 라이브러리가 read 시점에 writer/reader's 스키마를 둘 다 보고 writer's schema 에서 reader's schema 로 데이터를 변환하여 차이 해소
+
+필드 순서가 달라도 schema resolution 에서는 이름으로 필드 일치 시킴 +
+reader 에는 없고 writer 에 있으면 무시 +
+writer 에는 없고 reader 에 있으면 reader 에 선언된 기본값으로 채움
+
+==== 스키마 발전 규칙
+
+호환성 유지를 위해서 기본값이 있는 필드만 추가 / 삭제 가능
+
+Avro 에서는 임의 변수의 기본값으로 null 을 허용하지 않음 - **union 타입을 사용해야 한다** +
+`union { null, long, string } field;` - field 가 수/문자열/null
+
+optional, required 는 없고 union 과 기본값이 있다
+
+데이터타입 변경 가능
+
+==== 쓰기 스키마란?
+
+reader 가 writer's schema 를 어떻게 알 수 있나?
+
+* 대용량 파일
+** 일반적인 용도. 파일의 시작 부분에 한 번만 writer's schema 를 포함시키면 된다
+** 파일 형식 명시 (object container file)
+* DB
+** 부호화된 레코드의 시작 부분에 버전 번호 포함, DB 에 스키마 버전 목록 유지
+** reader 가 버전 번호를 추출하여 DB 에서 가져옴
+** (schema registry 가 이건가)
+* 네트워크 연결을 통해 레코드 보내기
+** 두 프로세스가 통신할 때 스키마 버전 합의. 연결 유지 동안 합의된 스키마 사용 (Avro RPC)
+
+==== 동적 생성 스키마
+
+스키마에 태그 번호가 없어 동적 생성 스키마에 더 친숙하다
+
+관계형 스키마에서 Avro 스키마를 쉽게 생성할 수 있다 +
+Avro 스키마 -> DB 내용 부호화 -> Avro object container file 형식으로 덤프
+
+DB 스키마가 변경되면? +
+갱신된 DB 스키마 -> 새로운 Avro 스키마 -> ... +
+읽는 시점에서 필드 변경 인지 - 필드는 이름으로 식별되어 writer 는 여전히 reader 와 매치 가능
+
+==== 코드 생성과 동적 타입 언어
+
+Avro 는 정적 타입 언어를 위해 코드 생성을 선택적으로 제공, 코드 생성 없이도 사용 가능 +
+object container file 이 있다면 Avro 라이브러리로 데이터를 볼 수 있음
+
+=== 스키마의 장점
+
+이진 부호화를 독자적으로 구현하기도 한다 +
+ex) RDB 의 네트워크 프로토콜 - 특정 DB 에 특화되고 DB 벤더가 드라이버 제공
+
+이점들
+
+* 부호화된 데이터에서 필드명 생략 가능, binary JSON 보다 크기가 작을 수 있다
+* 유용한 문서화 형식. 복호화할 때마다 필요하기 때문에 스키마가 최신 상태인지 확신할 수 있다
+* 스키마 DB 를 유지하면 변경이 적용되기 전 상위/하위 호환성 확인 가능
+* 정적 타입 언어에 스키마로부터 코드 생성 기능이 유용하다. 컴파일 시점에 타입 체크 가능
+
+schemaless or schema-on-read JSON DB 가 제공하는 것과 동일한 종류의 유연성 제공 +
+데이터나 도구 지원도 더 잘 보장
+
+== DataFlow 모드
+
+하나의 프로세스에서 다른 프로세스로 데이터를 전달하는 방법들
+
+* DB 를 통해서
+* 서비스 호출을 통해서
+* 비동기 메시지 전달을 통해서
+
+=== DB 를 통해서
+
+기록 - 부호화, 읽기 - 복호화
+
+그림 4-7. 데이터 유실 가능성
+
+==== 다양한 시점에 기록된 다양한 값
+
+데이터가 코드보다 더 오래 산다. data outlives code
+
+전체를 새로운 스키마로 rewriting 하기보단 +
+null 기본값을 갖는 새로운 컬럼을 추가하는 간단한 스키마 변경
+
+(MySQL 에서 ALTER 날리면 전체 테이블 복사 후 생성? 지금도?, https://myinfrabox.tistory.com/61[Online DDL 에서는 아닌듯])
+
+여러 버전의 스키마로 부호화된 레코드를 포함하더라도 (컬럼이 추가되기 이전 데이터들도) +
+단일 스키마로 부호화된 것처럼 보이게 한다
+
+==== 보관 저장소
+
+백업, data warehouse 로 적재하기 위해 DB 스냅샷을 수시로 만들 때 +
+최신 스키마를 사용해 부호화
+
+덤프는 한 번에 기록하고 변하지 않으므로 Avro object container file 같은 형식이 적합하다
