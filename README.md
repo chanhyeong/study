@@ -90,9 +90,10 @@ oop
 compiler  
 clean architecture  
 working effectively with legacy code  
+lucene  
 
 ### suspended
 
-Spring, Cloud native patterns, EIP
+Spring, Cloud native patterns, EIP, Java 9 Modularity
 
 ...
