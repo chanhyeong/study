@@ -73,12 +73,13 @@
 
 ### ETC
 
-- Designing Data-Intensive Applications (2023/02 ~)
+- Designing Data-Intensive Applications (2023/02 ~ 05)
   - https://www.oreilly.com/library/view/designing-data-intensive-applications/9781491903063/
   - https://books.google.co.kr/books/about/Designing_Data_Intensive_Applications.html?id=zFheDgAAQBAJ
 - Software Engineering at Google (2023/03 ~)
   - https://www.oreilly.com/library/view/software-engineering-at/9781492082781/
-
+- Monolith to Microservices (2023/06 ~)
+  - https://www.oreilly.com/library/view/monolith-to-microservices/9781492047834/
 ---
 
 ## Subject pool

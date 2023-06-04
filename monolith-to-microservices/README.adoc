@@ -1,0 +1,5 @@
+# Monolith to Microservices
+
+마이크로서비스 도입 이렇게 한다
+
+전체 아닌 일부분만 간단하게 정리함
