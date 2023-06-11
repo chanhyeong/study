@@ -80,6 +80,8 @@
   - https://www.oreilly.com/library/view/software-engineering-at/9781492082781/
 - Monolith to Microservices (2023/06 ~)
   - https://www.oreilly.com/library/view/monolith-to-microservices/9781492047834/
+- Clean architecture (2023/06 ~)
+  - https://www.oreilly.com/library/view/clean-architecture-a/9780134494272/
 ---
 
 ## Subject pool
@@ -89,7 +91,6 @@ nginx
 java (Optimizing Java, parallel programming)  
 oop  
 compiler  
-clean architecture  
 working effectively with legacy code  
 lucene  
 
