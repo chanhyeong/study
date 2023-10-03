@@ -4,9 +4,11 @@
 
 - Kotlin In Action (2021/01)
   - livebook: https://livebook.manning.com/book/kotlin-in-action
-- Java 9 Modularity (2023/02 ~)
+- Java 9 Modularity (2023/02 ~ suspend)
   - https://www.oreilly.com/library/view/java-9-modularity/9781491954157/
   - https://github.com/java9-modularity/examples
+- Effective Kotlin (2023/10 ~)
+  - https://kt.academy/book/effectivekotlin
 
 ### http (2021/02 ~ 04)
 
@@ -55,7 +57,7 @@
 ### Refactoring (2022/06 ~ 09)
 
 - https://refactoring.com/
-- toc en: https://www.oreilly.com/library/view/refactoring-improving-the/9780134757681//
+- toc en: https://www.oreilly.com/library/view/refactoring-improving-the/9780134757681/
 
 ### Extreme Programming (2022/10)
 

@@ -1,0 +1,113 @@
+= 1장. 안정성 (Safety)
+
+오류가 덜 발생하는 코드 만들기
+
+== Item 1. 가변성을 제한하라 (Limit mutability)
+
+mutable 객체는 상태를 가질 수 있어 요소를 시간의 변화에 따라 표현할 수 있다 +
+-> 상태를 적절하게 관리하기 어렵다
+
+. 프로그램을 이해하고 디버그하기 힘들어진다
+. 코드 실행 추론이 어려우짐
+. 멀티스레드에서 적절한 동기화 필요
+** 동기화를 잘 구현하는 것은 어렵다
+. 테스트하기 어려움
+. 상태 변경을 다른 부분에 알려야 하는 경우
+
+=== 가변성 제한하기
+
+==== read-only property (val)
+
+value 처럼 동작, 일반적인 방법으로는 값이 변하지 않음
+
+* 변할 수 있는 경우?
+.. mutable 객체를 담고 있다면 내부적으로 변할 수 있다
+.. 사용자 정의 getter 에서 보는 값이 변하는 경우
+
+var: getter & setter, val: getter -> val 을 var 로 오버라이드 할 수 있다 (p9)
+
+val 은 read-only 지만 immutable 하지는 않다 -> getter, delegate 때문 +
+변경할 필요가 없다면 final property 를 사용하는 것이 좋음 (p10)
+
+==== mutable collection, read-only collection 구분
+
+p11 코틀린의 컬렉션 계층
+
+* 앞서 var, val 처럼 getter, setter 차이와 비슷하게 동작
+* immutable 하지 않은 컬렉션을 외부에는 immutable 로 보이게 만들어서 안정성을 얻음
+** 컬렉션 다운캐스팅은 계약을 위반하고 추상화를 무시하는 행위
+** `toMutableList()` 를 활용하여 복제해서 사용하는 것이 낫다
+
+==== copy() of data class
+
+immutable 객체의 장점
+
+. 정의된 상태 유지 -> 코드 이해가 쉬움
+. 객체 공유 시에도 충돌이 이루어지지 않음 -> 병렬 처리 안전
+. 객체 참조가 변경되지 않음 -> 캐시
+. defensive copy 를 만들 필요 없음 -> deep copy 필요 없음
+. 다른 객체를 만들 때 활용하기 좋음
+. set, map 의 키로 사용
+** p14 코드에서 값이 변하면 set 에서 값을 찾을 수 없는 예시
+
+=== 그 외의 변경 가능 지점
+
+변경 가능한 리스트를 만들어야 한다면
+
+. mutable 컬렉션 만들기
+** 구현 내부에 변경 가능 지점 -> 멀티스레드 시 동기화 위험
+. var 로 읽고 쓸 수 있는 프로퍼티 만들기
+** 프로퍼티 자체가 변경 가능 지점 -> 멀티스레드에 좀 더 안전
+** 사용자 정의 setter 를 활용해서 변경을 추적할 수 있음 (`Delegates.observable`)
+** private set 으로도 가능
+
+=== 변경 가능 지점 노출하지 말기
+
+mutable 객체를 노출하지 않기
+
+. mutable 객체를 복제 (defensive copying)
+. read-only 타입으로 업캐스트
+
+=== 정리
+
+* var -> val
+* mutable -> immutable property/object/class
+* 변경 필요 대상을 만들어야 한다면? -> immutable data class & copy
+* 컬렉션에 상태를 저장해야 한다면? mutable collection -> read-only collection
+* 변이 지점을 적절하게 설계, 불필요 변이 지점은 만들지 않기
+* mutable 을 노출하지 말라
+
+효율성은 3부에서
+
+== Item 2. 변수의 스코프를 최소화하라 (Minimize the scope of variables)
+
+* 스코프는 중괄호로 만들어진다
+* 변수 스코프를 좁게 설정하는 것이 좋다
+** 프로그램을 추적하고 관리하기 쉬움
+** 범위가 너무 넓으면 잘못 사용될 수도
+
+여러 프로퍼티를 한꺼번에 설정해야 하는 경우 -> 구조분해 선언 (destructing declaration)
+
+=== 캡처링
+
+잠재적인 캡처 문제를 주의해야 한다 +
+람다에서 변수를 캡처한다
+
+== Item 3. 최대한 플랫폼 타입을 사용하지 말라 (Eliminate platform types as soon as possible)
+
+다른 언어에 어노테이션이 붙어 있지 않다면 nullable 로 가졍하고 다룬다 +
+generic 타입인 경우 리스트 + 내부도 null 체크가 필요하다
+
+플랫폼 타입: 다른 프로그래밍 언어에서 넘어온 타입, ! 기호를 붙여서 표기
+
+. null 일 가능성이 있다 - 가능한 Nullable, NotNull 어노테이션을 붙여서 사용해라
+. 플랫폼 타입은 안전하지 않으므로 최대한 빨리 제거하는게 좋다
+
+== Item 4. inferred 타입으로 리턴하지 말라
+
+할당 시 inferred 타입은 우측 피연산자에 맞게 설정
+
+리턴 타입은 API 를 잘 모르는 사람에게 전달해 줄 수 있는 중요한 정보
+
+타입을 확실하게 지정해야 하는 경우에는 명시적으로 타입을 지정해야 한다 +
+(가끔 public 에서 타입을 정의하지 않은 메소드는 IDE 에서 경고를 보냈던 듯)
