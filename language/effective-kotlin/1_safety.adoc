@@ -111,3 +111,101 @@ generic 타입인 경우 리스트 + 내부도 null 체크가 필요하다
 
 타입을 확실하게 지정해야 하는 경우에는 명시적으로 타입을 지정해야 한다 +
 (가끔 public 에서 타입을 정의하지 않은 메소드는 IDE 에서 경고를 보냈던 듯)
+
+== Item 5. 예외를 활용해 코드에 제한을 걸어라 (Specify your expectations for arguments and state
+)
+
+* 문제가 있을 경우 예상하지 않은 동작이 아닌 throw
+* 어느 정도 자체적인 검사, 단위 테스트를 줄일 수 있음
+* 스마트 캐스트
+
+=== Argument
+
+`require` 는 argument 와 관련된 제한을 걸 때 사용
+
+=== State
+
+객체가 초기화되어 있을 때만 처리하기, 로그인했을 때만 처리하기, 객체를 사용할 수 있는 지점에 사용하고 싶은 함수
+
+`check` 는 지정된 예측을 만족하지 못할 때
+
+=== Assert
+
+* 코드를 자체적으로 점검, 효율적으로 테스트
+* 특정 상황이 아닌 모든 상황에 대한 테스트
+* 실행 시점에 정확하게 어떻게 되는지 확인
+* 실제 코드가 더 빠른 시점에 실패
+
+표준 애플리케이션 실행에서는 assert 가 예외를 던지지 않는다
+
+=== nullability, smart casting
+
+* `requireNotNull`, `checkNotNull`
+* Elvis operator (return, throw)
+
+=== Item 6. 사용자 정의 오류보다는 표준 오류를 사용하라 (Prefer standard errors to custom ones)
+
+직접 오류 정의보다는 표준 라이브러리의 오류를 사용 -> 많은 개발자가 알고 있으므로 재사용하는 것이 좋다
+
+(라이브러리 단에서 이런 경우를 많이 봤는데, 어디서 발생한건지 추적이 잘 안되는 문제도 있는 것 같긴 하다)
+
+== Item 7. 결과 부족이 발생할 경우 null과 Failure 를 사용하라. (Prefer a nullable or Result result type when the lack of a result is possible)
+
+예외는 잘못된 특별한 상황, 처리되어야 한다 +
+예외적인 상황이 발생했을 때 사용하는 것이 좋다
+
+* 이유?
+** 예외가 전파되는 과정을 제대로 추적하지 못함
+** kotlin 에서는 unchecked
+** 명시적인 테스트만큼 빠르게 동작하지 않는다
+** try-catch 내에 코드는 컴파일러가 할 수 있는 최적화가 제한된다
+
+p50 의 오류 처리 방식은 try-catch 보다 효율적, 명시적으로 처리해야 한다 +
+(예외를 놓칠 일이 없고, 애플리케이션을 중지시키지도 않음)
+
+nullable 리턴보다는 OrNull 등으로 무엇이 리턴되는지 예측하게 하는 것이 좋다
+
+== Item 8. 적절하게 null 을 처리하라
+
+null 리턴은 함수에 따라 여러 의미를 가질 수 있다
+
+nullable 은 기본적으로 세 가지 방법으로 처리
+
+. `?.`, smart casting, Elvis operator
+. throw
+. 리팩토링하여 nullable 이 나오지 않게 함
+
+=== null 을 안전하게 처리하기
+
+safe call, smart casting (kotlin contracts 지원)
+
+=== throw
+
+오류가 발생할 수 있는 부분에는 강제로 발생시켜 주는 것이 좋다
+
+`throw`, `!!`, `requireNotNull`, `checkNotNull`
+
+=== not-null assertion(!!) 과 관련된 문제
+
+!! 연산자의 사용은 최대한 피해야 한다 -> `lateinit`, `Delegates.notNull` 을 사용
+
+=== 의미없는 nullability 피하기
+
+nullable 자체를 피하는 방법
+
+* 클래스에서 nullability 에 따라 여러 함수 제공 (OrNull, null/Failure)
+* lateinit, notNull delegate
+* empty collection
+* None enum
+
+=== lateinit property & notNull Delegate
+
+* lateinit - 처음 사용 전 반드시 초기화될 거라고 예상되는 상황에 활용
+** !! 를 사용하지 않아도 된다
+** nullable 로도 만들 수 있음
+** 초기화된 이후에는 초기화되지 않은 상태로 돌아갈 수 없음
+
+
+* Delegates.notNull
+** primitive 타입과 연결된 타입으로 프로퍼티를 초기화하는 경우
+** 21장에서 다룰 예정
