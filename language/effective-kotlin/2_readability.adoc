@@ -49,3 +49,47 @@ top-level function 을 사용하는 것도 좋음 (file 에 정의)
 === 규칙을 무시해도 되는 경우
 
 DSL 설계 시
+
+== Item 13. Unit? 을 리턴하지 말라 (Avoid returning or operating on Unit?)
+
+가독성, 파악이 쉽지 않다
+
+Unit? 은 Boolean 으로 대체할 수 있다
+
+== Item 14. 변수 타입이 명확하지 않은 경우 확실하게 지정하라 (Consider making types explicit)
+
+`val data = getSomeData()` 와 같은 경우 명시해주는게 코드 파악이 더 쉬움
+
+안전을 위해서도 지정하는 것이 좋음 (3, 4장과 이어서)
+
+== Item 15. 리시버를 명시적으로 참조하라 (Consider referencing receivers explicitly)
+
+더 자세하게 설몀하기 위한, 명시적으로 긴 코드 사용 (this 등)
+
+=== 여러 개의 리시버
+
+* 스코프 내부에 둘 이상의 리시버가 있는 경우, 리시버를 명시적으로 나타내는게 좋다
+** p87 코드보단, p89 코드
+
+=== DSL 마커
+
+* DSL 에서는 외부 함수를 사용하는게 위험한 경우가 있음
+* `DslMarker`: 암묵적으로 외부 리시버를 사용하는 것을 막는 메타 어노테이션
+* 가장 가까운 리시버만을 사용 or 명시적으로 외부 리시버를 사용하지 못하게 할 때 활용
+
+== Item 16. 프로퍼티는 동작이 아니라 상태를 나타내야 한다 (Properties should represent a state, not a behavior)
+
+* 프로퍼티는 사용자 정의 setter, getter 를 가질 수 있다
+** java 필드처럼 정의한다면 backing field 가 있고 `field` 라는 식별자가 제공된다
+** 읽기 전용에서는 field 가 만들어지지 않음
+* var 로 이용하는건 derived property 라고 부름
+* 필드가 필요 없다 -> 개념적으로 접근자를 나타낸다
+
+프로퍼티로 알고리즘 동작을 나타내는 것은 좋지 않다
+
+* 관습적으로 getter 에 계산량이 필요하다고 예상하지 않음
+** 함수로 구현해야 한다
+* 상태를 나타내거나 설정하기 위한 목적으로만 사용하는게 좋다
+* 로직을 포함하지 않아야 한다
+
+프로퍼티 = 상태 집합, 함수 = 행동
