@@ -58,3 +58,60 @@ ex) 독립적인 프로젝트의 빌드 설정
 * 확장 함수는 concrete type 에만 제한할 수 있어 좋음
 * 아규먼트로 받아서 사용하는 것 보다는 확장 리시버로 사용하는게 가독성이 좋음
 * 자동 완성이 지원되므로 찾기 쉬움
+
+== Item 21. 일반적인 프로퍼티 패턴은 프로퍼티 위임으로 만들어라
+
+* 일반적인 프로퍼티의 행위를 추출해서 재사용 가능
+* 다른 객체의 메소드를 활용해서 프로퍼티의 접근자를 만드는 방식
+** `getValue`, `setValue`
+* 컨텍스트(this) 와 프로퍼티 레퍼런스도 함께 사용하는 형태
+** 레퍼런스: 이름, 어노테이션과 관련된 정보 얻을 때
+** 컨텍스트: 함수가 어떤 위치에서 사용되는지와 관련된 정보를 제공
+
+****
+lazy +
+Delegates.observable +
+Delegates.vetoable +
+Delegates.notNull
+****
+
+== Item 22. 일반적인 알고리즘을 구현할 때 제네릭을 사용하라 (Use generics when implementing common algorithms)
+
+* 컴파일러에 타입과 관련된 정보를 제공하여, 더 정확하게 추측할 수 있게 해준다
+
+=== 제네릭 제한
+
+* 구체 타입의 서브타입만 사용하도록 제한할 수 있다 (p132 예시)
+* `where` 을 이용하여 둘 이상의 제한을 걸 수도
+
+== Item 23. 타입 파라미터의 섀도잉을 피하라 (Avoid shadowing type parameters)
+
+지역 파라미터가 외부 스코프에 있는 프로퍼티를 가리는 경우 +
+(lambda 중첩 시 it 같은)
+
+독립적인 타입 파라미터를 의도했다면 p135 아래 코드처럼 다르게
+
+== Item 24. 제네릭 타입과 variance 한정자를 활용하라 (Consider using variance modifiers for generic types)
+
+* invariant: 제네릭 타입으로 만들어지는 타입들이 서로 관련성이 없다
+* covariant (out): A -> B 이면 List<A> -> List<B> 다
+* contravariant (in): A <- B 이면 List<A> <- List<B> 다
+
+=== 함수 타입
+
+* 모든 파라미터 타입은 contravariant
+* 모든 리턴 타입은 covariant
+
+=== variance 한정자의 안정성
+
+자바의 배열은 covariant -> 정렬 함수 등을 만들기 위해 -> p140 의 경우 런타임 오류
+
+* out 으로 선언 & public `in` 위치에 `out` 이 오는 것을 금지 (p141 두 번째 코드로 첫 번째 케이스를 막음)
+* in 으로 선언 & public `out` 위치에 `in` 사용하는 것을 금지
+** 둘 다 private 으로 제한하면 막을 수 있다
+
+=== variance 한정자의 위치
+
+. 선언 부분
+. 클래스와 인터페이스
+** 특정한 변수에만 적용 -> 특정 인스턴스에만 적용해야 할 때
