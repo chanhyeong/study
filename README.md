@@ -107,3 +107,33 @@ lucene
 Spring, Cloud native patterns, EIP, Java 9 Modularity
 
 ...
+
+### history
+
+period | book
+-- | --
+2021/01 | kotlin in action
+2021/02 ~ 04 | Http The Definitive Guide
+2021/04 ~ suspend | Real MySQL
+2021/04 ~ 07 | Kafka Definitive Guide
+2021/06 ~ 09 | Domain Driven Design
+2021/09 ~ 10 | Spring in action, 5th edition
+2021/12 ~ suspend | Cloud native patterns
+suspend | Enterprise Integration Patterns
+suspend | GoF Design Patterns
+2022/03 ~ 06 | System Design Interview, 1th edition
+2022/06 ~ 09 | Refactoring
+2022/10 | Extreme Programming
+2022/07 ~ 09 | 실전 카프카 개발부터 운영까지
+2022/10 ~ suspend | Spring official docs
+2022/11 ~ 12 | Pragmatic Unit Testing in Java 8 with JUnit
+2022/11 ~ 2023/01 | Unit Testing
+2023/01 ~ 02 | Test Driven Development: By Example
+2023/02 ~ suspend | Java 9 Modularity
+2023/02 ~ 05 | Designing Data-Intensive Applications
+2023/03 ~ 08 | Software Engineering at Google
+2023/06 ~ suspend | Monolith to Microservices
+2023/06 ~ 09 | Clean architecture
+2023/09 ~ 11 | 개발자의 글쓰기
+2023/10 ~ | Effective Kotlin
+2023/11 ~ | The pragmatic prgrammer, 20th edition
