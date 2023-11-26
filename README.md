@@ -85,6 +85,11 @@
   - https://www.oreilly.com/library/view/monolith-to-microservices/9781492047834/
 - Clean architecture (2023/06 ~ 09)
   - https://www.oreilly.com/library/view/clean-architecture-a/9780134494272/
+- 개발자의 글쓰기 (2023/09 ~ 11)
+  - https://www.yes24.com/Product/Goods/79378905
+- The pragmatic prgrammer, 20th edition (2023/11 ~)
+  - https://pragprog.com/titles/tpp20/the-pragmatic-programmer-20th-anniversary-edition/
+
 ---
 
 ## Subject pool
