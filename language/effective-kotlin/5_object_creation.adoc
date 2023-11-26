@@ -1,0 +1,118 @@
+= 5. 객체 생성
+
+== Item 33. 생성자 대신 팩토리 함수를 사용하라 (Consider factory functions instead of secondary constructors)
+
+생성자의 역할을 대신 해 주는 함수
+
+* 이름을 붙일 수 있다
+* 원하는 형태의 타입을 리턴할 수 있다
+* 호출될 때마다 새 객체를 만들 필요가 없다 (싱글턴 객체 리턴)
+* 존재하지 않는 객체를 리턴할 수 있다
+* 객체 외부에 정의하면 가시성을 원하는 대로 제어할 수 있다
+* 인라인으로, reified 로 만들 수 있다
+* 복잡한 객체를 만들어낼 수 있다
+* 원하는 때에 생성자 호출
+
+factory method 는 primary 가 아닌 secondary consturctor 와 경쟁 관계다
+
+=== Companion object factory method
+
+네이밍 룰
+
+* from: 1개의 파라미터, 1개의 같은 타입 인스턴스 리턴
+* of: n개의 파라미터, 통합한 인스턴스 리턴
+* valueOf: from, of 와 비슷하지만 읽기 쉽게
+* instance, getInstance: 싱글턴으로 인스턴스 하나 리턴
+* createInstance, newInstance: 싱글턴이 나닌 새로운 인스턴스
+* getType: factory method 가 다른 클래스에 있을 때 (== getInstance)
+* newType: factory method 가 다른 클래스에 있을 때 (== newInstance)
+
+companion 에 상속을 하려 팩토리 메소드를 만들 수 있다
+
+=== Extension factory method
+
+companion object 가 이미 정의되어 있고 수정할 수 없을 때, companion object 의 extension method 를 만들어서 정의
+
+=== top-level factory method
+
+모든 곳에서 사용할 수 있으므로 이름을 신중하게 생각해서 지저앻야 한다
+
+=== fake constructor
+
+top-level method 는 생성자처럼 보이고, 생성자처럼 작동 (p215 코드 List)
+
+* 인터페이스를 위한 생성자를 만들고자 할 때
+* reified 타입 인자를 갖고자 할 때
+
+생성자처럼 보여야하고, 생성자처럼 동작해야 한다 - 다른 이름을 가지는게 좋다
+
+invoke 는 비추천 -> 연산자 오버로드 의미와 맞지 않음
+
+=== method of factory class
+
+factory class 는 클래스의 상태를 가질 수 있다 (== 프로퍼티를 가질 수 있다) +
+다양한 최적화, 기능 도입 가능
+
+== Item 34. 기본 생성자에 이름 있는 옵션 아규먼트를 사용하라 (Consider a primary constructor with named optional arguments
+)
+
+생성자와 관련된 자바 패턴
+
+. 점층적 생성자 패턴 (telescoping constructor pattern)
+. 빌더 패턴 (builder pattern)
+
+=== 점층적 생성자 패턴 (telescoping constructor pattern)
+
+여러 가지 종류의 생성자를 정의해서 사용 +
+kotlin 에서는 default argument 를 사용
+
+(kotlin -> jvm 으로 갈 때 개별 생성자로 정의된다는 것으로 알고 있음)
+
+* 파라미터 값을 원하는 대로 지정 가능
+* 원하는 순서로 지정 가능
+* 명시적인 이름으로 명확한 의미
+
+=== 빌더 패턴 (builder pattern)
+
+* 파라미터에 이름을 붙일 수 있음
+* 원하는 순서로 지정 가능
+* 디폴트 값을 지정할 수 있음
+
+빌더에 비해 named parameter 가 좋은 이유
+
+* 더 짧음
+* 더 명확함
+* 더 사용하기 쉬움
+* 동시성 문제가 없음
+
+builder 가 더 좋은 경우
+
+* 값의 의미를 묶어서 지정 -> DSL 정의로 커버 가능
+
+코틀린은 빌더 패턴을 거의 사용하지 않고, 하는 경우는
+
+* 다른 언어로 작성된 라이브러리를 옮길 때
+* 다른 언어에서 쉽게 사용할 수 있는 API 를 설계할 때
+
+=== Item 35. 복잡한 객체를 생성하기 위한 DSL 을 정의하라 (Consider defining a DSL for complex object creation)
+
+DSL 정의는 어렵지만, 보일러플레이트와 복잡성을 숨기면서 개발자의 의도를 명확하게 표현할 수 있다
+
+복잡하고 계층적인 자료 구조를 쉽게, type-safe 하게 만들 수 있다
+
+=== 사용자 정의 DSL 만들기
+
+리시버를 사용하는 함수 타입에 대한 개념을 이해해야 한다
+
+람다 표현식, 익명 함수, 함수 레퍼런스
+
+=== 언제 사용해야
+
+DSL 은 정보를 정의하는 방법을 제공
+
+* 복잡한 자료 구조
+* 계층적인 구조
+* 거대한 양의 데이터
+
+많이 사용되는 구조의 반복을 제거할 수 있게 해준다 +
+반복되는 코드가 있고 간단하게 만들 수 있게 할 수 있다면, DSL 사용 고려
