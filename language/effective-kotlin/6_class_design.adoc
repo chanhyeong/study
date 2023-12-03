@@ -31,3 +31,118 @@ open 클래스는 open 메소드만 오버라이드 할 수 있다 +
 === 정리
 
 상속은 명확한 'is-a' 관계일 때 사용하는게 좋다
+
+== Item 37. 데이터 집합 표현에 data 한정자를 사용하라 (Use the data modifier to represent a bundle of data)
+
+데이터들을 한꺼번에 전달해야 할 때
+
+아래 메소드들을 자동으로 생성해 줌
+
+* toString, equals, hashCode, copy, componentN
+
+componentN 은 위치를 잘못 지정하면 문제가 발생할 수 있음, +
+기본 생성자의 프로퍼티 명과 같은 이름을 사용하는 것이 좋다
+
+link:../kotlin-in-action/7_overloading_and_convention.md#destructing-declaration[Destructing declaration (kotlin-in-action, 구조 분해 선언)]
+
+=== Tuple 보다는 데이터 클래스 사용하기
+
+Pair, Triple - 코틀린 기본 제공 튜플
+
+튜플만 보고는 어떤 타입인지 예측할 수 없다, 현재는 지역적인 목적으로만 남아 있음
+
+* 값에 간단하게 이름을 붙일 때
+* aggregate 집합을 표현할 때
+
+데이터 클래스 사용의 장점
+
+* 리턴 타입이 명확해진다
+* 리턴 타입이 더 짧아지고, 전달하기 쉬워진다
+* 사용자가 다른 이름으로 변수를 해제하면 경고 출력
+
+== Item 38. 연산 또는 액션을 전달할 때는 인터페이스 대신 함수 타입을 사용하라 (Use function types or functional interfaces to pass operations and actions)
+
+SAM (Single-Abstract Method): 메소드가 하나만 있는 인터페이스
+
+함수 타입으로 파라미터를 받게 되면
+
+. 람다 표현식 or 익명 함수로 전달
+. 메소드 레퍼런스 or 제한된 메소드 레퍼런스로 전달
+. 선언된 함수 타입을 구현한 객체로 전달
+
+typealias 로 함수 타입 이름을 붙일 수도 있다 + 파라미터도 이름을 가질 수 있다
+
+destructing argument 도 사용할 수 있다
+
+=== SAM 을 사용해야 할 때?
+
+코틀린이 아닌 다른 언어에서 사용할 클래스를 설계할 때만
+
+== Item 39. 태그 클래스보다는 클래스 계층을 사용하라 (Use sealed classes and interfaces to express restricted hierarchies, Prefer class hierarchies instead of tagged classes)
+
+태그 클래스: 태그 (상수 모드) 를 가진 클래스 - 서로 다른 책임을 한 클래스에 태그로 구분해서 넣는다 +
+단점이 많다 (p264)
+
+sealed 클래스를 사용하면 책임이 분산되므로 깔끔하다
+
+=== 태그 클래스와 상태 패턴의 차이
+
+상태 패턴은 객체 내부 상태가 변화할 때, 객체 동작이 변하는 패턴
+
+상태는 더 많은 책임을 가진 큰 클래스 +
+상태는 변경할 수 있다
+
+구체 상태는 객체를 활용해서 표현, sealed 클래스 계층으로 만들면 좋다
+
+=== 정리
+
+코틀린에서는 태그 클래스보다 sealed 클래스를 사용한 타입 계층을 만드는게 좋다
+
+== Item 40. equals 의 규약을 지켜라 (Respect the contract of equals)
+
+규약을 위반하면 일부 객체 또는 기능이 제대로 동작하지 않을 수 있다
+
+=== 동등성의 정의
+
+* 구조적 (structural): equals 메소드와 == 로 확인하는 동등성
+* 레퍼런스적 (referential): === 로 확인하는 (주소값) 동등성
+
+연산자 (==, ===) 로 다른 타입를 비교하는 건 허용되지 않음
+
+=== equals 가 필요한 이유
+
+두 인스턴스가 완전히 같은 객체인지 비교
+
+data class 에서는 기본 생성자에 선언되지 않은 프로퍼티는 copy 로 복사되지 않는다
+
+equals 를 직접 구현해야 하는 경우
+
+* 기본 동작과 다른 동작을 해야 하는 경우
+* 일부 프로퍼티만 비교
+* data 를 붙이는 것을 원하지 않거나, 프로퍼티가 기본 생성자에 없는 경우
+
+=== equals 의 규약
+
+==== 반사적 (reflexive)
+
+`x.equals(x) == true
+
+==== 대칭적 (symmetric)
+
+`x.equals(y) == y.equals(x)`
+
+==== 연속적 (transitive)
+
+`x.equals(y) == y.equals(z)` -> `x.equals(z) == z.equals(y)`
+
+==== 일관적 (consistent)
+
+`x != null, y != null` 이면 `x.equals(y)` 는 항상 같은 결과 리턴
+
+==== null 과 관련
+
+x 가 null 이 아니라면, `x.equals(null) == false`
+
+=== 정리
+
+직접 equals 를 구현하는 것은 좋지 않다, 구현해야 한다면 위의 규약을 만족시켜야 한다
