@@ -1,0 +1,44 @@
+= 8. 효율적인 컬렉션 처리
+
+== Item 49. 하나 이상의 처리 단계를 가진 경우에는 시퀀스를 사용하라 (Prefer Sequences for big collections with more than one processing step)
+
+* Sequence: 지연 처리, 최종 연산이 이루어 질 때 최종 계산 수행
+** 처리 순서 유지
+** 최소한의 연산
+** 무한 시퀀스 형태로 사용 가능
+** 각 단계마다 컬렉션을 만들어 내지 않음
+* Iterable: 처리 시마다 연산
+
+=== 순서의 중요성
+
+* Sequence: element-by-element order / lazy order
+* Iterable: step-by-step order / eager order
+
+=== 최소 연산
+
+중간 연산 개념을 가지고 있어, 필요한 개수만큼만 원하는 처리 적용 가능
+
+=== 무한 시퀀스
+
+* generateSequence: 첫 번째 요소, 그 다음 요소를 계산하는 방법
+* sequence: suspend function, 함수 내에서 yield 로 값을 하나씩 만들어 냄
+
+=== 각각의 단계에서 컬렉션을 만들어 내지 않음
+
+=== 시퀀스가 빠르지 않은 경우
+
+sorted 사용 시에만 주의
+
+== Item 50. 컬렉션 처리 단계 수를 제한하라 (Limit the number of operations)
+
+비용이 많이 들기 때문에 처리 단계 수를 제한하는 것이 좋다
+
+== Item 51. 성능이 중요한 부분에는 기본 자료형 배열을 사용하라 (Consider Arrays with primitives for performance-critical processing)
+
+가볍고 빠르다
+
+== Item 52. mutable 컬렉션 사용을 고려하라 (Consider using mutable collections)
+
+컬렉션에 요소 추가 시 성능이 더 낫다
+
+immutable 은 복제 후 추가
