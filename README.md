@@ -135,5 +135,5 @@ suspend | GoF Design Patterns
 2023/06 ~ suspend | Monolith to Microservices
 2023/06 ~ 09 | Clean architecture
 2023/09 ~ 11 | 개발자의 글쓰기
-2023/10 ~ | Effective Kotlin
+2023/10 ~ 12| Effective Kotlin
 2023/11 ~ | The pragmatic prgrammer, 20th edition
