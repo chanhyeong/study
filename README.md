@@ -72,6 +72,8 @@
     - toc en: https://www.oreilly.com/library/view/pragmatic-unit-testing/9781680500769/
 - Test Driven Development: By Example (2023/01 ~ 02)
     - https://www.oreilly.com/library/view/test-driven-development/0321146530/
+- Effective software testing (2024/01 ~)
+    - https://www.manning.com/books/effective-software-testing
 
 ### ETC
 
@@ -87,7 +89,7 @@
   - https://www.oreilly.com/library/view/clean-architecture-a/9780134494272/
 - 개발자의 글쓰기 (2023/09 ~ 11)
   - https://www.yes24.com/Product/Goods/79378905
-- The pragmatic prgrammer, 20th edition (2023/11 ~)
+- The pragmatic prgrammer, 20th edition (2023/11 ~ Suspend)
   - https://pragprog.com/titles/tpp20/the-pragmatic-programmer-20th-anniversary-edition/
 
 ---
@@ -136,4 +138,5 @@ suspend | GoF Design Patterns
 2023/06 ~ 09 | Clean architecture
 2023/09 ~ 11 | 개발자의 글쓰기
 2023/10 ~ 12| Effective Kotlin
-2023/11 ~ | The pragmatic prgrammer, 20th edition
+2023/11 ~ suspend | The pragmatic prgrammer, 20th edition
+2024/01 ~ | Effective software testing
