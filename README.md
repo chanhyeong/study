@@ -17,7 +17,7 @@
 - JVM 밑바닥까지 파헤치기 (In progress)
     - https://github.com/fenixsoft/jvm_book
 
-## Essetials
+## Essentials
 
 ### Http The Definitive Guide
 
