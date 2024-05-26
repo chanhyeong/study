@@ -25,23 +25,23 @@
 
 ## Platform, Framework
 
-### MySQL (2021/04 ~ suspend)
+### MySQL (not completed)
 
 - Real MySQL
 
 ### Kafka
 
-- Kafka The Definitive Guide (2021/04 ~ 07)
+- Kafka The Definitive Guide
     - pdf: https://www.confluent.io/wp-content/uploads/confluent-kafka-definitive-guide-complete.pdf
 - Kafka 데이터 플랫폼의 최강자
-- 실전 카프카 개발부터 운영까지 (2022/07 ~ 09)
+- 실전 카프카 개발부터 운영까지
 
 ### Spring
 
 - Spring in Action 5th edition (not completed)
 - Mastering Spring 5.0, ...
 - [official docs](https://docs.spring.io/spring-framework/docs/current/reference/html/)
-    - core (2022/10, suspend)
+    - core (not completed)
 
 ## Design, Architecture, Pattern
 
@@ -69,6 +69,11 @@
 
 - https://www.oreilly.com/library/view/designing-data-intensive-applications/9781491903063/
 - https://books.google.co.kr/books/about/Designing_Data_Intensive_Applications.html?id=zFheDgAAQBAJ
+
+### Designing Hexagonal Architecture with Java
+
+- 만들면서 배우는 헥사고날 아키텍처 설계와 구현
+- https://www.packtpub.com/product/designing-hexagonal-architecture-with-java/9781801816489
 
 ### Clean architecture
 
@@ -99,33 +104,32 @@
 
 - https://www.yes24.com/Product/Goods/79378905
 
-### The pragmatic prgrammer, 20th edition (not completed)
+### The pragmatic prgrammer, 20th edition
 
 - https://pragprog.com/titles/tpp20/the-pragmatic-programmer-20th-anniversary-edition/
 
 ## Test
 
-- Unit Testing (2022/11 ~ 2023/01)
+- Unit Testing
     - https://www.manning.com/books/unit-testing
-- Pragmatic Unit Testing in Java 8 with JUnit (2022/11 ~ 12)
+- Pragmatic Unit Testing in Java 8 with JUnit
     - http://www.yes24.com/Product/Goods/75189146
     - toc en: https://www.oreilly.com/library/view/pragmatic-unit-testing/9781680500769/
-- Test Driven Development: By Example (2023/01 ~ 02)
+- Test Driven Development: By Example
     - https://www.oreilly.com/library/view/test-driven-development/0321146530/
-- Effective software testing (2024/01 ~)
+- Effective software testing
     - https://www.manning.com/books/effective-software-testing
 
 ---
 
 ## Subject pool
 
-netty (netty in action)  
 nginx  
 java (Optimizing Java, parallel programming)  
 oop  
 compiler  
 working effectively with legacy code  
-lucene
+The Mythical Man-Month
 
 ### history
 
@@ -156,6 +160,7 @@ suspend | GoF Design Patterns
 2023/07 ~ 2024/04 | 그림으로 이해하는 네트워크 용어
 2023/09 ~ 11 | 개발자의 글쓰기
 2023/10 ~ 12| Effective Kotlin
-2023/11 ~ suspend | The pragmatic prgrammer, 20th edition
+2023/11 ~ 2024/05 | The pragmatic prgrammer, 20th edition
 2024/01 ~ 04| Effective software testing
 2023/05 ~ | JVM 밑바닥까지 파헤치기
+2023/05 ~ | Designing Hexagonal Architecture with Java
