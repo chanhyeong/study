@@ -51,7 +51,7 @@
     - study in https://github.com/juniors-dev-study/domain-driven-design
 - CQRS: https://cqrs.files.wordpress.com/2010/11/cqrs_documents.pdf
 
-### Cloud native patterns (not completed)
+### Cloud native patterns
 
 - Cloud native patterns
 - pdf: https://livebook.manning.com/book/cloud-native
@@ -141,7 +141,7 @@ period | book
 2021/04 ~ 07 | Kafka Definitive Guide
 2021/06 ~ 09 | Domain Driven Design
 2021/09 ~ 10 | Spring in action, 5th edition
-2021/12 ~ suspend | Cloud native patterns
+2021/12 ~ 2024/07 | Cloud native patterns
 suspend | Enterprise Integration Patterns
 suspend | GoF Design Patterns
 2022/03 ~ 06 | System Design Interview, 1th edition
