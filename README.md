@@ -23,6 +23,10 @@
 
 - pdf: https://github.com/pangpang834/pybook/blob/master/O'Reilly%20-%20HTTP%20-%20The%20Definitive%20Guide.pdf
 
+### The TCP/IP Guide
+
+- toc: http://www.tcpipguide.com/toc.htm
+
 ## Platform, Framework
 
 ### MySQL (not completed)
@@ -165,3 +169,4 @@ suspend | GoF Design Patterns
 2024/05 ~ 09 | JVM 밑바닥까지 파헤치기
 2024/05 ~ 07 | Designing Hexagonal Architecture with Java
 2024/08 ~ | System Design Interview, Volume2
+2024/09 ~ | The TCP/IP Guide
