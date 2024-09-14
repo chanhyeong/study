@@ -144,7 +144,7 @@ period | book
 2021/12 ~ 2024/07 | Cloud native patterns
 suspend | Enterprise Integration Patterns
 suspend | GoF Design Patterns
-2022/03 ~ 06 | System Design Interview, 1th edition
+2022/03 ~ 06 | System Design Interview
 2022/06 ~ 09 | Refactoring
 2022/10 | Extreme Programming
 2022/07 ~ 09 | 실전 카프카 개발부터 운영까지
@@ -161,6 +161,7 @@ suspend | GoF Design Patterns
 2023/09 ~ 11 | 개발자의 글쓰기
 2023/10 ~ 12| Effective Kotlin
 2023/11 ~ 2024/05 | The pragmatic prgrammer, 20th edition
-2024/01 ~ 04| Effective software testing
-2023/05 ~ | JVM 밑바닥까지 파헤치기
-2023/05 ~ | Designing Hexagonal Architecture with Java
+2024/01 ~ 04 | Effective software testing
+2024/05 ~ 09 | JVM 밑바닥까지 파헤치기
+2024/05 ~ 07 | Designing Hexagonal Architecture with Java
+2024/08 ~ | System Design Interview, Volume2
