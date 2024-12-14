@@ -87,6 +87,10 @@
 
 - https://www.oreilly.com/library/view/monolith-to-microservices/9781492047834/
 
+### Streaming Data: Understanding the real-time pipeline
+
+- https://www.manning.com/books/streaming-data
+
 ## Software Engineering
 
 ### Extreme Programming
@@ -168,5 +172,7 @@ suspend | GoF Design Patterns
 2024/01 ~ 04 | Effective software testing
 2024/05 ~ 09 | JVM 밑바닥까지 파헤치기
 2024/05 ~ 07 | Designing Hexagonal Architecture with Java
-2024/08 ~ | System Design Interview, Volume2
+2024/08 ~ 12 | System Design Interview, Volume2
 2024/09 ~ | The TCP/IP Guide
+2024/10 ~ | The Programmer's Brain
+2024/12 ~ | Streaming Data: Understanding the real-time pipeline
