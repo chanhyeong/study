@@ -1,0 +1,141 @@
+= 6장. 클래스 파일 구조
+
+플랫폼 독립적 저장 형식
+
+== 플랫폼 독립을 향한 초석
+
+* 자바는 처음부터 VM 에서 다른 언어를 실행할 가능성을 염두해두었다
+** '자바 언어 명세', '자바 가상 머신 명세'
+* VM 과 바이트코드 저장 형식: 언어 독립성을 보장하는 핵심
+** JVM 은 어떤 프로그래밍 언어에도 종속되지 않음 - 클래스파일 (binary 파일) 에만 의존
+** 클래스파일에는 JVM 명령어 집합, 심볼 테이블, 추가 정보에 담김
+* '자바 가상 머신 명세' 에는 클래스 파일이 필수 구문을 갖추고 특정 구조를 따르도록 제약
+* VM 자체는 원래 소스 코드가 어떤 건지 상관하지 않음
+
+바이트코드 명령어 조합으로 표현
+
+* 바이트코드 명령어의 표현 능력이 자바 언어 자체보다 뛰어나다
+** 자바가 지원하지 않는 개념이라도 다른 언어에서는 제공할 수 있는 길을 열어둠
+
+== 클래스 파일 구조
+
+* 클래스 파일 구조 대부분은 '자바 가상 머신 명세' 1판 때 내용 그대로
+* 원래 구조를 유지한 채 내용을 추가하거나 기능을 확장하는 형태
+* 모든 클래스 파일은 각각 하나의 클래스 or 인터페이스 정의
+** 동적으로 클래스 로더에 직접 제공할 수 있음
+** 디스크에 파일 형태로 존재할 필요도 없음
+* 바이트를 하나의 단위로 하는 binary stream 집합체
+* 클래스 파일에 데이터를 저장하는 의사 구조 - 2가지 타입만 존재
+.. unsigned number: 기본 데이터 타입 표현
+*** u1, u2, u4, u8
+*** 숫자, 인덱스 참조, 수량값 기술 or UTF-8 문자열 값 구성
+.. table: 여러 개의 unsinged number or table 로 구성된 복합 데이터 타입을 표현
+*** 이름은 '_info' 로 끝남
+*** 계층적으로 구성된 복합 구조의 데이터를 설명
+* '_count': 같은 타입의 데이터를 여러 개 표현 시 개수를 알려주는 타입이 바로 앞에 위치
+* 클래스 파일은 바이트 순서, 각 바이트의 의미, 길이, 순서가 모두 엄격하게 제한. 변경될 수 없음
+
+=== magic number 와 클래스 파일의 버전
+
+* magic number: 모든 클래스 파일의 첫 4바이트
+** VM 이 허용하는 클래스 파일인지 여부를 빠르게 확인
+** 0xCAFEBABE
+* 클래스 파일 버전: 다음 4바이트
+** 5~6번째 바이트: 마이너 버전
+*** 이전에 사용되었으나 1.2 부터 미사용으로, 전부 0 으로 고정
+** 7~8번째 바이트: 메이저 버전
+** 45부터 시작
+** 상위 버전 JDK 는 하위 버전을 인식할 수 있음
+** 하위 버전 JDK 는 상위 버전 클래스 파일을 실행하지 못함
+*** '파일 형식이 변경되지 않았더라도 상위 버전의 클래스 파일을 실행하면 안 된다'
+
+=== constant pool
+
+클래스 파일 구조에서 다른 클래스와 가장 많이 연관된 부분
+
+* 갯수를 알려주는 u2 타입 데이터 - 관례상 1부터 시작
+** 0번째 상수: '상수 풀 항목을 참조하지 않음' 을 표현
+* 유형: 리터럴 + 심볼 참조
+** 리터럴: 자바 언어 수준 상수 (final static or constant)
+** 심볼 참조: 컴파일과 관련된 개념
+*** 모듈에서 export/import 하는 패키지, fully qualified name
+*** 필드/메소드 이름과 서술자 (descriptor)
+*** method handle, method type, invoke dynamic
+*** dynamically-computed call site, dynamically-computed constant
+
+자바 코드를 javac 로 컴파일할 때는 링크 단계가 없다
+
+* field, method 가 메모리에 어떤 구조로 표현되는지는 클래스 파일에 없다
+.. VM 은 클래스 파일을 로드할 때 상수 풀에서 해당 심볼 참조를 가져옴
+.. 클래스가 생성되거나 구동할 때 해석하여 실제 메모리 주소로 변환
+* JDK 21 기준으로 17가지 타입 존재
+** 타입은 p297 표
+** 타입별 구조는 p301 표
+** CONSTANT_Utf8_info: 최댓값 65535 == 변수나 메소드 이름이 64KB 가 넘으면 컴파일되지 않음
+
+==== 클래스 파일 바이트코드 분석
+
+* jdk/bin/javap -v 클래스명.class
+
+컴파일러가 자동으로 field, method, attribute table 을 채워주며 이후 나옴
+
+=== access_flags
+
+constant pool 다음의 2바이트
+
+* 현재 클래스 (인터페이스) 의 접근 정보 식별
+** 클래스인지 인터페이스인지, public 인지, abstract 인지, final 인지
+* 플래그 비트를 최대 16개 사용 가능하지만 9개만 정의되어 있음
+** 미사용 비트는 0 이어야 한다
+
+=== class index, parent class index, interface index
+
+* u2 + u2 + u2 묶음
+* class index, parent class index: 현재, 부모 클래스의 fully qualified name 결정
+** java.lang.Object 를 제외한 모든 클래스의 parent class index 는 0 이 아니다
+* interface index collection: 현재 클래스가 구현한 인터페이스 목록
+
+=== field table
+
+* 인터페이스나 클래스 안에 선언된 변수들을 설명
+** field = class variable + instance variable
+** local variable 은 field 가 아니다
+* 범위 제한 (modifier), 인스턴스/클래스 변수 구분, final, volatile (CPU 캐시가 아닌 메인 메모리를 직접), transient (직렬화 시 포함 여부), 데이터 타입 (primitive, 객체, 배열), 필드 이름
+* modifier 는 u2 로 표현 (access_flags)
+** p306 표
+* 필드 이름, 타입 크기는 상수 풀에 정의된 상수를 참조하여 설명 (상수 풀에서의 인덱스)
+* simple name: method, field 이름을 참조할 때 이용. type, parameter 정보는 생략
+* descriptor
+** field descriptor: 타입까지 가지고 있음
+** method descriptor: parameter list (개수, 타입, 순서 포함), return type 정보까지 가지고 있음
+** primitive type 은 제일 첫 문자의 대문자를 씀
+** object type 은 fully qualified name 앞에 "L" 을 추가하여 표현
+** 배열은 차원 수만큼 "[" 를 붙인다
+** method 기술 시 parameter list 를 먼저 적고 반환값을 적는다
+* parent class/interface 에서 상속받은 필드는 나열하지 않음
+
+소스 코드에는 존재하지 않는 필드
+
+* inner class: outer class 를 가리킬 수단 필요
+** 외부 클래스의 인스턴스를 가리키는 필드를 자동으로 추가
+* 자바 언어에서는 field overloading 불가능 - field name 이 기준
+** 타입, 한정자가 다르더라도 이름이 같다면 같은 클래스에 정의할 수 있음
+** 클래스 파일 형식 차원에서는 서술자만 다르면 다른 필드로 취급
+
+=== method table
+
+필드 저장 형태와 거의 같음 (구조는 완전히 같음)
+
+* 메소드 본문의 코드는 바이트코드 명령어로 변환된 후 "Code" 속정에 따로 저장
+* parent class 의 메소드 정보는 나타나지 않음
+* method overloading: 메소드의 단순 이름은 같고 서술자가 다르다
+** method signature 에는 return type 이 포함되지 않기 때문
+** == return type 만 다르게하여 메소드 오버로딩은 불가능하다
+** 클래스 파일에서는 서술자만 같지 않다면 가능하다
+
+=== attribute table
+
+* 제약이 살짝 느슨하며 순서에도 엄격하지 않다
+* 기존 속성 이름과 중복되지 않는 한, 자체 제작한 컴파일러가 새로운 속성 정보를 속성 테이블에 추가할 수 있다
+* 속성 이름은 CONSTANT_Utf8 타입 상수를 참조해 표현, 길이는 u4
+* 속성값 자체의 구조는 완벽하게 사용자 정의 가능
