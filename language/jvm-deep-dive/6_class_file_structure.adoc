@@ -139,3 +139,237 @@ constant pool 다음의 2바이트
 * 기존 속성 이름과 중복되지 않는 한, 자체 제작한 컴파일러가 새로운 속성 정보를 속성 테이블에 추가할 수 있다
 * 속성 이름은 CONSTANT_Utf8 타입 상수를 참조해 표현, 길이는 u4
 * 속성값 자체의 구조는 완벽하게 사용자 정의 가능
+
+==== Code 속성
+
+* 메소드 본문의 코드를 저장하는 속성
+* interface/abstract method 에는 없음
+* attribute_name_index, attribute_length, max_stack, max_locals, code_length, code[code_length], exception_table_length, exception_table[...], attributes_count, attributes[attributes_count]
+** max_locals 는 동시에 존재하는 지역 변수들이 차지하는 슬롯의 최대 개수만큼을 잡음
+** code_length 는 바이트코드의 길이, code 는 바이트코드 명령어들이 순서대로 저장되는 바이트 스트림
+** 명령어는 현재 약 200가지
+** code_length 를 보통 초과할 일은 없지만 JSP 컴파일러에 의해 초과되어 실패할 수도 있음
+
+데이터 교환, 메소드 호출 작업이 모두 스택 기반으로 이루어진다
+
+* this 키워드 제공: 첫 번째 변수 슬롯은 객체 인스턴스의 참조를 저장하도록 예약
+** 인스턴스 메소드의 매개 변수 수는 최소 1이다. (static 은 0)
+* exception_table 은 필수가 아니다
+** start_pc, end_pc 사이에서 catch_type 예외 발생 시 handler_pc 로 이동
+** catch_type 이 0 이면 무조건 handler_pc
+
+==== Exception 속성
+
+* throw 될 수 있는 checked exception 나열하는 기능
+
+==== LineNumberTable 속성
+
+* 자바 소스의 줄 번호와 바이트코드의 줄 번호 사이의 대응 관계
+* start_pc: 바이트코드의 라인, line_number: 자바 소스의 라인
+
+==== LocalVariableTable, LocalVariableTypeTable 속성
+
+* 지역 변수 테이블 안의 변수와 자바 소스 코드에 정의된 변수 사이의 관계 설명
+** 매개 변수의 이름을 알 수 있음
+* LocalVariableTypeTable: 제네릭 타입을 설명
+** descriptor 가 매개 변수화된 타입을 담을 수 없어서 제네릭 타입을 설명할 수 없음
+** 시그니처를 완벽하게 설명할 수 있는 signature_index 속성 추가
+
+==== SourceFile, SourceDebugExtension 속성
+
+* 클래스 파일을 생성한 자바 소스 파일 이름 기록
+* SourceDebugExtension: 컴파일러에 의해 동적으로 생성된 클래스에, 사용자 정의 정보를 쉽게 추가할 수 있도록
+** 클래스 당 하나만 허용
+
+==== ConstantValue 속성
+
+* 클래스 변수 할당은 `<clinit>` or ConstantValue 속성을 사용
+* javac 는 final static 이거나 String 인 경우 ConstantValue 속성을 이용해 초기화
+** final 이 아닌 변수 or primitive or String 은 `<clinit>`` 사용
+
+==== InnerClasses 속성
+
+* inner class 와 host class 사이의 연결 관계를 기록
+
+==== Deprecated, Synthetic 속성
+
+flag type (boolean) 속성
+
+* Synthetic: 컴파일러가 자동 생성한 필드 or 메소드
+** 소스 코드에 존재하지 않는 Synthetic method or field or class 를 통째로 생성
+*** 무허가 접근 (private modifier 우회), 언어 제한을 우회하는 기법을 구현
+
+==== StackMapTable 속성
+
+* JDK 6 이후 추가
+** 이전에는 데이터 흐름을 분석하여 타입 추론 -> 클래스 로딩 성능을 떨어뜨림
+* 타입 검사 기반
+* 컴파일 단계에서 검증 타입을 클래스 파일에 기록 -> 런타임에는 타입 추론 대신 검증 타입을 바로 확인
+* 0개 이상의 stack map frame 을 가짐
+** 각 frame 은 바이트코드 오프셋을 나타냄
+** 바이트코드 실행 시 지역 변수 테이블과 피연산자 스택을 나타내는데 사용하는 유효성 검사의 한 방법
+* 검증기는 대상 메소드의 지역 변수 테이블과 피연산자 스택의 필수 타입 검사 - 논리적 제약 조건을 준수하는지 확인
+
+==== Signature 속성
+
+* JDK 5 에서 제네릭을 지원하기 위해 추가
+** 클래스의 속성/필드/메소드 테이블에 선택적으로 등장할 수 있음
+* 클래스, 인터페이스, 초기화 메소드, 기타 클래스 멤버가 **타입 변수나 매개 변수화 타입을 포함할 경우, 제네릭 시그니처 정보를 담기 위해 이용**
+* 제네릭을 소거법으로 구현: 컴파일 후 바이트코드에는 어떠한 제네릭 정보도 찾을 수 없음
+** 리플렉션을 이용해도 런타임에 제네릭 정보를 얻을 수 없음
+* 이 속성으로 리플렉션 API 로 제네릭 정보를 얻을 수 있음
+* signature_index: 시그니처를 나타내는 CONSTANT_Utf8_info 구조
+
+==== BootstrapMethods 속성
+
+* JDK 7 에서 추가, invokedynamic 명령어가 참조하는 부트스트랩 method modifier 가 담긴다
+* JAVA SE 7 의 자바 가상 머신 명세에서는 CONSTANT_InvokeDynamic_info 타입 상수가 등장하면 이 속성도 있어야 한다
+** CONSTANT_InvokeDynamic_info 가 여러 번 있어도 이 속성은 최대 하나만 등장
+* bootstrap_methods[] 원소 각각은 하나의 부트스트랩 메소드를 뜻함
+
+==== MethodParameters 속성
+
+* JDK 8 에서 추가, 메소드가 받는 매개 변수들의 이름과 정보를 기록
+* LocalVariableTable 은 메소드 본문이 없으면 지역 변수 테이블도 존재할 수 없다
+* 컴파일러가 매개 변수 이름을 클래스 파일에 기록할 수 있게 함 (-parameters 옵션 추가)
+** 리플렉션으로도 가져오기 가능
+
+==== 모듈화 관련 속성
+
+* module-info.java 도 독립된 클래스 파일로 컴파일되어 저장 + 클래스 파일 형식도 확장
+* Module: 모듈명, 버전, 플래그, requires, exports, opens, uses, provides
+* ModulePackages: 모듈의 패키지를 설명
+* ModuleMainClass: 모듈의 main class 를 명시
+
+==== 런타임 어노테이션 속성
+
+* JDK 5 에서 추가, 런타임에서 참조할 어노테이션 정보
+* RuntimeVisibleAnnotations, RuntimeInvisibleAnnotations, RuntimeVisibleParameterAnnotations, RuntimeInvisibleParameterAnnotations
+
+==== Record 속성
+
+* JDK 16 에서 추가, 레코드 구성 요소
+
+==== PermittedSubClasses 속성
+
+* JDK 17 에서 추가, sealed class 에서 허용되는 서브 클래스 목록
+
+== 바이트코드 명령어 소개
+
+* opcode + operand n개로 구성
+** opcode: 특정 작업을 뜻하는 바이트 길이의 숫자
+* 대부분은 operand 없이 opcode 하나로 구성, operand 는 operand stack 에 저장
+* 1바이트 길이 제한으로 최대 256개의 opcode 만 표현 가능
+* operand 의 길이 정렬 (length alignment) 를 허용하지 않음
+** 1바이트가 넘는 데이터를 처리할 때는 런타임에 특정 구조로 재구성
+** 16비트 정수는 `(byte1 << 8) | byte2` 로 저장
+*** 바이트코드를 해석하고 실행하는 속도가 조금 느려진다
+*** 장점: 수많은 패딩과 공백을 없앨 수 있다, 컴파일된 결과물이 짧고 간결
+
+=== 바이트코드와 데이터 타입
+
+* 명령어 자체에 필요한 타입 정보가 포함되어 있음
+** iload (int), fload (float), ...
+** 데이터 타입과 관련된 대부분의 opcode 는 이름이 전용 데이터 타입을 뜻하는 문자로 시작
+* 자주 쓰이는 연산과 데이터 타입 조합에만 전용 명렁어 배정
+** 전용 명령어가 없는 타입은 별도 지시문으로 지원하는 타입으로 변환해서 사용
+* byte, char, short 전용 명령어는 거의 없음, boolean 은 아예 없음
+** 컴파일 or 런타임에 int 로 부호 확장 (sign extension)
+
+=== load, store
+
+* load, store: 읽기, 저장
+* push: 상수 읽기
+* wide: 더 넓은 인덱스를 사용하여 더 많은 지역 변수에 접근하거나 더 큰 피연산자에 접근
+* 일부는 _n 을 붙임
+** operand 가 하나 뿐인 기본 명령어의 특수 형태
+** operand n 인 명령어
+
+=== arithmetic
+
+* operand stack 의 값 2개를 이용해 특정한 arithmetic operation 을 수행
+* 결과를 다시 operand stack 맨 위에 저장
+* overflow or 0 나누기 상황에서는 다르게 동작
+** overflow 는 어떤 결과를 내야하는지 명시되어 있지 않음
+** 0 나누기는 ArithmeticException 을 던져야 한다
+* byte, short, char, boolean 은 int 타입용 명령어 사용
+* add, sub, mul, div, rem, neg, shl, shr, or, and, xor, iinc, cmpg
+* 부동 소수점 수를 처리할 때 IEEE 754 표준을 엄격히 따르도록 함
+** 모든 연산 결과를 적절한 precise 로 반올림
+** 정확하지 않은 결과는 표현 가능한 가장 가까운 값으로 반올림
+** 표현 가능한 두 값이 수학적으로 정확한 값과 차이가 있다면 최하위 비트가 0인 값 우선
+** 반올림 모드 - round to nearest
+** 부동 소수점 -> 정수 변환 시 0에 가까운 값으로 반올림
+** 수학적 정의가 없다면 NaN 값으로 표현
+* long 타입 값을 비교할 때는 부호 있는 비교
+* 부동 소수점 값을 비교하는 dcmpg, dcmpl, fcmpg, fcmpl 는 nonsignaling comparison tngod
+
+=== type casting
+
+* 숫자 타입 -> 다른 숫자 타입
+* 표현 범위가 넓어지는 경우는 알아서
+* 축소될 때는 형 변환 명령어를 반드시 사용해야 함
+* 부동 소수점을 정수로 축소할 때는
+** NaN: int or long 0
+** 무한대가 아니라면: 0에 가까운 값으로 반올림 v 를 구함.
+*** v 가 대상 타입에 있다면: v
+*** 없다면: 대상 타입이 표현할 수 있는 가장 큰 값 or 가장 작은 값
+* double -> float 은 IEEE 754 정의와 일치
+** 가까운 값으로 반올림, 표현이 불가하다면 양수/음수 0 으로 표현
+** 너무 크다면 양수/음수 무한대로 표현
+* 축소 변환하면 overflow, underflow, loss of precision 발생 가능
+** 런타임 예외를 던질 수 없다고 규정하고 있음
+
+=== 객체 생성과 접근
+
+* new, newarray, anewarray, multianewarray
+* getfield, putfield, getstatic, putstatic
+* baload, caload, saload, iaload, laload, faload, daload, aaload
+* bastore, castore, sastore, iastore, lastore, fastore, dastore, aastore
+* arraylength
+* instanceof, checkcast
+
+=== operand stack 관리
+
+* pop, pop2, dup, dup2, dup_x1, dup2_x1, dup_x2, dup2_x2, swap
+
+=== 제어 전이
+
+* 조건 or 무조건적으로 지정한 위치로 이동
+** 이동할 위치의 명령어는 제어 전이 명령어가 아니어야 함
+* ifeq, iflt, ...
+
+=== 메소드 호출, 반환
+
+* invokevirtual: 인스턴스 메소드 호출
+** 실제 타입에 따라 디스패치 (가상 메소드 디스패치)
+* invokeinterface: 인터페이스 메소드 호출
+* invokespecial: 인스턴스 초기화, private, parent 메소드 호출
+* invokestatic: static 메소드 호출
+* invokedynamic: 런타임에 call site modifier 가 참조하는 메소드를 동적으로 찾아 호출
+** JVM 실행 시 사용자가 설정할 수 있음
+* 메소드 반환 명령어는 반환값의 타입에 따라 구분
+
+=== 예외 처리
+
+* athrow
+* catch 는 바이트코드 명령어 대신 exception table 에서 처리
+
+=== 동기화
+
+* 메소드 수준 동기화, 메소드 내 명령어 블록 동기화 (lock) 지원
+* monitorenter, monitorexit
+** 컴파일러는 monitorenter 명령어 각각에 대응하는 monitorexit 명령어가 실행되도록 보장해야 한다
+
+== 설계는 공개, 구현은 비공개
+
+* 자바 가상 머신 명세는 공통된 프로그램 저장 형식을 정의
+* 어떻게 구현했는가는 공개되지 않을 수 있음
+** 구현 방식을 자유롭게 선택할 수 있다
+
+== 클래스 파일 구조의 진화
+
+* 클래스 파일의 구조는 안정되게 유지되는 상태
+** 주요 구조, 의미, 바이트코드 명령어 수는 거의 그대로
+* 플랫폼 독립성, 클래스 파일 형식의 간결성/안정성/확정성
+** 자바가 플랫폼 독립 + 언어 독립을 달성하기 위한 중요한 두 기둥
