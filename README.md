@@ -91,6 +91,14 @@
 
 - https://www.manning.com/books/streaming-data
 
+### Fundamentals of Software Architecture
+
+- https://www.oreilly.com/library/view/fundamentals-of-software/9781492043447/
+
+### Patterns of distributed system
+
+- https://www.oreilly.com/library/view/patterns-of-distributed/9780138222246/
+
 ## Software Engineering
 
 ### Extreme Programming
@@ -115,6 +123,12 @@
 ### The pragmatic prgrammer, 20th edition
 
 - https://pragprog.com/titles/tpp20/the-pragmatic-programmer-20th-anniversary-edition/
+
+## Artificial Intelligence
+
+### LLM을 활용한 실전 AI 애플리케이션 개발
+
+- https://product.kyobobook.co.kr/detail/S000213834592
 
 ## Test
 
@@ -173,6 +187,9 @@ suspend | GoF Design Patterns
 2024/05 ~ 09 | JVM 밑바닥까지 파헤치기
 2024/05 ~ 07 | Designing Hexagonal Architecture with Java
 2024/08 ~ 12 | System Design Interview, Volume2
-2024/09 ~ | The TCP/IP Guide
-2024/10 ~ | The Programmer's Brain
-2024/12 ~ | Streaming Data: Understanding the real-time pipeline
+2024/09 ~ suspend | The TCP/IP Guide
+2024/10 ~ suspend | The Programmer's Brain
+2024/12 ~ 2025/03 | Streaming Data: Understanding the real-time pipeline
+2025/02 ~ 2025/07 | Fundamentals of Software Architecture
+2025/08 ~ | Patterns of distributed systems
+2025/08 ~ | LLM을 활용한 실전 AI 애플리케이션 개발
